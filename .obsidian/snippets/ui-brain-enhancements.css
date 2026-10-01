@@ -1,0 +1,112 @@
+﻿/* ==========================================================================
+   UI VIBE CODING EXTERNAL BRAIN - OBSIDIAN THEME ENHANCEMENTS
+   File: .obsidian/snippets/ui-brain-enhancements.css
+   ========================================================================== */
+
+/* 1. Tag Pills Enhancement */
+a.tag[href^="#style/"],
+a.tag[href^="#family/"],
+a.tag[href^="#theme/"],
+a.tag[href^="#category/"] {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  font-size: 0.78em;
+  font-weight: 600;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  border: 1px solid var(--tag-border, rgba(129, 140, 248, 0.3));
+  background-color: var(--tag-bg, rgba(99, 102, 241, 0.1));
+  color: var(--tag-color, #818CF8);
+  transition: all 0.15s ease-in-out;
+}
+
+a.tag[href^="#style/"]:hover,
+a.tag[href^="#family/"]:hover {
+  background-color: rgba(99, 102, 241, 0.22);
+  border-color: rgba(129, 140, 248, 0.6);
+  transform: translateY(-1px);
+}
+
+/* Theme specific tags */
+a.tag[href="#theme/dark"] {
+  background-color: rgba(15, 23, 42, 0.6);
+  color: #94A3B8;
+  border-color: rgba(148, 163, 184, 0.3);
+}
+a.tag[href="#theme/light"] {
+  background-color: rgba(254, 243, 199, 0.3);
+  color: #D97706;
+  border-color: rgba(217, 119, 6, 0.3);
+}
+
+/* 2. Sleek Modern Tables */
+.markdown-rendered table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  margin: 1.2em 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--background-modifier-border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.markdown-rendered th {
+  background-color: var(--background-secondary-alt);
+  font-weight: 700;
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 2px solid var(--background-modifier-border);
+  color: var(--text-normal);
+  font-size: 0.9em;
+}
+
+.markdown-rendered td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  vertical-align: middle;
+  font-size: 0.92em;
+}
+
+.markdown-rendered tr:last-child td {
+  border-bottom: none;
+}
+
+.markdown-rendered tr:hover td {
+  background-color: var(--background-modifier-hover);
+}
+
+/* 3. Inline Code and Token Highlighting */
+.markdown-rendered code {
+  font-family: var(--font-monospace, 'JetBrains Mono', monospace);
+  font-size: 0.88em;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background-color: var(--background-secondary-alt);
+  border: 1px solid var(--background-modifier-border);
+}
+
+/* 4. Canvas Visual Node Upgrades */
+.canvas-node-container {
+  border-radius: 16px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease !important;
+}
+
+.canvas-node-container:hover {
+  box-shadow: 0 16px 40px rgba(99, 102, 241, 0.28) !important;
+}
+
+/* 5. Color Swatch Inline Helper */
+.color-swatch-box {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  vertical-align: -1px;
+  margin-right: 6px;
+  border: 1px solid rgba(128, 128, 128, 0.35);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}

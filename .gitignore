@@ -1,0 +1,30 @@
+# Dependencies, bundled runtimes and generated output
+node_modules/
+.runtime/
+dist/
+coverage/
+*.log
+*.tsbuildinfo
+
+# Local credentials and application data
+.env
+.env.*
+!.env.example
+builder/data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+
+# Verification artifacts and local agent state
+builder/verification/
+builder/.verification/
+builder/OCS.md
+
+# Obsidian session state and installed third-party plugins
+.obsidian/workspace*.json
+.obsidian/plugins/
+
+# Operating system files
+.DS_Store
+Thumbs.db

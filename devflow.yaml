@@ -1,0 +1,29 @@
+# DevFlow Project Configuration
+project_name: "mobile-ui-styles"
+# Set DEVFLOW_ENGINE to the absolute engine directory containing cli.py.
+# For tools that read this YAML directly, replace the placeholder with that directory.
+engine_path: "<DEVFLOW_ENGINE_DIRECTORY>"
+
+subagents:
+  enabled: true
+  config_file: ".agents/subagents/subagents.json"
+  rooms:
+    - name: "think_tank_room"
+      role: "Think Tank Reasoning & Adversary"
+    - name: "dumb_tank_room"
+      role: "Dumb Tank Control (No Files)"
+    - name: "committee_room"
+      role: "Committee Voting & Evidence"
+
+ocs:
+  identity: "DevFlow Engineer for mobile-ui-styles"
+  hard_char_limit: 24400
+  rules:
+    - "Evidence over opinions (exact file and line references required)."
+    - "Three-room dual-blind arbitration for critical architectural changes."
+    - "Prose Effect must be checked to prevent framing bias."
+    - "Verify findability before writing ADRs/memories."
+
+workflows:
+  # Replace the placeholder with the configured engine directory when using this workflow directly.
+  default: "<DEVFLOW_ENGINE_DIRECTORY>/workflows/feature_dev.yaml"

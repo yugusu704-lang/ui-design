@@ -1,0 +1,3126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vibe Coding Mobile UI Compass 3.0 | 30种手机UI设计风格与Vibe Coding提示词罗盘</title>
+  <!-- Google Fonts: Diverse aesthetic typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Noto+Serif+SC:wght@400;600;700&family=Playfair+Display:ital,wght@0,600;0,800;1,400&family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <style>
+    /* Global Reset & Base Variables */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    :root {
+      --bg-main: #090C10;
+      --bg-surface: #111620;
+      --bg-card: #18202E;
+      --bg-glass: rgba(24, 32, 46, 0.75);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(99, 102, 241, 0.35);
+      --text-primary: #F8FAFC;
+      --text-secondary: #94A3B8;
+      --text-muted: #64748B;
+      --brand-primary: #6366F1;
+      --brand-gradient: linear-gradient(135deg, #6366F1 0%, #A855F7 50%, #EC4899 100%);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-full: 9999px;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+
+    /* Ambient Background Glow */
+    .ambient-glow-bg {
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1000px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.08) 40%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Top Sticky Header */
+    header.app-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(9, 12, 16, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--brand-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 20px;
+      color: #fff;
+      box-shadow: 0 4px 18px rgba(99, 102, 241, 0.45);
+    }
+    .brand-text h1 {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-badge {
+      background: rgba(99, 102, 241, 0.18);
+      color: #A5B4FC;
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      letter-spacing: 0.05em;
+    }
+    .brand-text p {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* Header Actions & Tools */
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .search-box {
+      position: relative;
+      width: 270px;
+    }
+    .search-box input {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 8px 14px 8px 36px;
+      border-radius: var(--radius-full);
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .search-box input:focus {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: var(--brand-primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    }
+    .search-box svg {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 15px;
+      height: 15px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .view-switcher {
+      display: flex;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full);
+      padding: 3px;
+    }
+    .view-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .view-btn.active {
+      background: var(--brand-primary);
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(99, 102, 241, 0.45);
+    }
+
+    .tour-btn {
+      background: rgba(236, 72, 153, 0.15);
+      color: #F472B6;
+      border: 1px solid rgba(236, 72, 153, 0.35);
+      border-radius: var(--radius-full);
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .tour-btn:hover, .tour-btn.active {
+      background: #EC4899;
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(236, 72, 153, 0.45);
+    }
+
+    /* Filter Category Strip */
+    .filter-strip {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 10px 28px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      position: sticky;
+      top: 65px;
+      z-index: 90;
+    }
+    .filter-strip::-webkit-scrollbar { display: none; }
+    .filter-chip {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 16px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .filter-chip:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-primary);
+    }
+    .filter-chip.active {
+      background: rgba(99, 102, 241, 0.16);
+      border-color: rgba(99, 102, 241, 0.45);
+      color: #A5B4FC;
+    }
+    .filter-chip span.count {
+      font-size: 11px;
+      opacity: 0.75;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 1px 7px;
+      border-radius: 10px;
+    }
+
+    /* Keyboard Shortcuts Help Bar */
+    .shortcut-bar {
+      padding: 6px 28px;
+      background: rgba(0, 0, 0, 0.35);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .kbd-badge {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      padding: 1px 5px;
+      border-radius: 4px;
+      margin: 0 3px;
+      font-size: 10px;
+    }
+
+    /* Main Container */
+    main.main-container {
+      max-width: 1780px;
+      margin: 0 auto;
+      padding: 24px 28px;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* VIEW 1: Focus View Grid Layout */
+    .focus-view {
+      display: grid;
+      grid-template-columns: 1fr 430px;
+      gap: 32px;
+      align-items: start;
+    }
+
+    /* Left: Active Dossier & 30 Style Selector */
+    .catalog-column {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Active Style Hero Dossier Banner */
+    .active-dossier-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 26px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.35);
+    }
+    .active-dossier-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--brand-gradient);
+    }
+    .dossier-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 18px;
+      gap: 16px;
+    }
+    .dossier-title-area h2 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .dossier-title-area p.subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .dossier-badge-category {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 14px;
+      border-radius: var(--radius-full);
+      background: rgba(99, 102, 241, 0.16);
+      color: #A5B4FC;
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      white-space: nowrap;
+    }
+
+    /* Vibe Prompt Section */
+    .vibe-prompt-section {
+      background: rgba(9, 12, 16, 0.8);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      margin-bottom: 20px;
+    }
+    .vibe-prompt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .vibe-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: #A855F7;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .prompt-tab-group {
+      display: flex;
+      gap: 6px;
+    }
+    .format-tab-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .format-tab-btn.active {
+      background: rgba(99, 102, 241, 0.25);
+      border-color: #6366F1;
+      color: #FFF;
+    }
+
+    .copy-action-btn {
+      background: var(--brand-primary);
+      border: none;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 16px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .copy-action-btn:hover {
+      background: #4F46E5;
+      transform: translateY(-1px);
+    }
+    .vibe-prompt-text {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.6;
+      color: #E2E8F0;
+      background: rgba(0,0,0,0.4);
+      padding: 14px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      border-left: 3px solid #6366F1;
+    }
+
+    /* Keyword Tags */
+    .keywords-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .keyword-tag {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-family: var(--font-mono);
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      transition: 0.2s;
+      cursor: pointer;
+    }
+    .keyword-tag:hover {
+      border-color: #6366F1;
+      color: #fff;
+      background: rgba(99, 102, 241, 0.15);
+    }
+
+    /* Color Tokens Strip */
+    .tokens-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .color-swatch-card {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 9px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .color-swatch-card:hover {
+      border-color: rgba(255,255,255,0.35);
+      transform: translateY(-2px);
+    }
+    .swatch-color-box {
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.12);
+      flex-shrink: 0;
+    }
+    .swatch-meta { overflow: hidden; }
+    .swatch-name {
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+    .swatch-hex {
+      font-size: 12px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* CSS Core Snippet Box */
+    .css-snippet-box {
+      background: #07090E;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .css-snippet-header {
+      background: rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 9px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+    .css-snippet-code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 16px;
+      color: #38BDF8;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+
+    /* 30 Styles Quick Selection Cards */
+    .style-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+    }
+    .style-select-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .style-select-card:hover {
+      background: var(--bg-card);
+      border-color: rgba(99, 102, 241, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px rgba(0,0,0,0.35);
+    }
+    .style-select-card.active {
+      background: rgba(99, 102, 241, 0.14);
+      border-color: #6366F1;
+      box-shadow: 0 0 0 1px #6366F1, 0 8px 24px rgba(99, 102, 241, 0.28);
+    }
+    .style-select-card .card-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+    }
+    .style-select-card h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+    .style-select-card .card-zh {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+    .style-select-card .mini-palette {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 8px;
+    }
+    .style-select-card .mini-palette-dot {
+      width: 15px;
+      height: 15px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .style-select-card .card-tags-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .style-select-card .card-micro-tag {
+      font-size: 10px;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* Right Column: Sticky Live Phone Simulator */
+    .simulator-column {
+      position: sticky;
+      top: 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .simulator-toolbar {
+      width: 380px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full);
+      padding: 6px 14px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+    }
+    .sim-tool-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      transition: 0.2s;
+    }
+    .sim-tool-btn:hover {
+      color: #fff;
+      background: rgba(255,255,255,0.08);
+    }
+
+    /* Physical Phone Chassis */
+    .phone-mockup {
+      width: 375px;
+      height: 770px;
+      background: #000;
+      border-radius: 52px;
+      padding: 12px;
+      box-shadow: 
+        0 0 0 2px #2A2A2A,
+        0 0 0 5px #151515,
+        0 25px 65px -10px rgba(0, 0, 0, 0.9),
+        0 0 45px rgba(99, 102, 241, 0.18);
+      position: relative;
+      user-select: none;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .phone-mockup::before {
+      content: "";
+      position: absolute;
+      left: -6px;
+      top: 130px;
+      width: 4px;
+      height: 50px;
+      background: #333;
+      border-radius: 3px 0 0 3px;
+      box-shadow: 0 65px 0 #333, 0 120px 0 #333;
+    }
+    .phone-mockup::after {
+      content: "";
+      position: absolute;
+      right: -6px;
+      top: 175px;
+      width: 4px;
+      height: 75px;
+      background: #333;
+      border-radius: 0 3px 3px 0;
+    }
+
+    /* Phone Screen Viewport */
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      background: #FFFFFF;
+      border-radius: 42px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      scrollbar-width: none;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+    .phone-screen::-webkit-scrollbar { display: none; }
+
+    /* Phone Status Bar & Dynamic Island */
+    .phone-status-bar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      width: 100%;
+      height: 44px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 24px;
+      font-size: 13px;
+      font-weight: 600;
+      flex-shrink: 0;
+      pointer-events: none;
+    }
+    .dynamic-island {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 110px;
+      height: 28px;
+      background: #000000;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      color: #fff;
+      font-size: 10px;
+      z-index: 60;
+      pointer-events: auto;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .dynamic-island.expanded {
+      width: 220px;
+      height: 38px;
+      border-radius: 22px;
+      background: #111;
+    }
+    .dynamic-camera-lens {
+      width: 10px;
+      height: 10px;
+      background: #181818;
+      border-radius: 50%;
+      border: 1px solid #282828;
+    }
+
+    /* Screen Inner Content */
+    .screen-content {
+      padding: 10px 18px 85px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex: 1;
+    }
+
+    /* Bottom Tab Bar */
+    .phone-tab-bar {
+      position: sticky;
+      bottom: 0;
+      width: 100%;
+      height: 64px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 0 10px 10px 10px;
+      z-index: 40;
+      flex-shrink: 0;
+    }
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .tab-item:active {
+      transform: scale(0.92);
+    }
+
+    /* Home Indicator */
+    .home-indicator {
+      position: absolute;
+      bottom: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 125px;
+      height: 4px;
+      border-radius: 4px;
+      background: currentColor;
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    /* VIEW 2: 30 Styles All-Grid Gallery */
+    .gallery-grid-view {
+      display: none;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 28px;
+    }
+    .gallery-item-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transition: all 0.3s;
+    }
+    .gallery-item-card:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.4);
+    }
+    .gallery-mini-phone-wrapper {
+      width: 100%;
+      height: 460px;
+      border-radius: 28px;
+      background: #000;
+      padding: 8px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    .gallery-mini-screen {
+      width: 100%;
+      height: 100%;
+      border-radius: 22px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: none;
+      position: relative;
+    }
+    .gallery-mini-screen::-webkit-scrollbar { display: none; }
+
+    /* VIEW 3: Vibe Cheat-Sheet Table */
+    .cheatsheet-view {
+      display: none;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      overflow-x: auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    table.vibe-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+    table.vibe-table th {
+      background: rgba(255, 255, 255, 0.04);
+      padding: 14px 18px;
+      color: var(--text-secondary);
+      font-weight: 700;
+      border-bottom: 1px solid var(--border-subtle);
+      white-space: nowrap;
+    }
+    table.vibe-table td {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: top;
+    }
+    table.vibe-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* VIEW 4: Side-by-Side Dual Phone Comparison View */
+    .compare-view {
+      display: none;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .compare-selectors-bar {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      gap: 20px;
+    }
+    .compare-select-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .compare-select-wrapper label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+    .compare-select {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--border-subtle);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+    }
+    .dual-phones-container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 48px;
+      flex-wrap: wrap;
+    }
+
+    /* Toast Notification */
+    .toast-popup {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: #10B981;
+      color: #FFFFFF;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 22px;
+      border-radius: var(--radius-full);
+      box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 999;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+    .toast-popup.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1100px) {
+      .focus-view {
+        grid-template-columns: 1fr;
+      }
+      .simulator-column {
+        position: static;
+        order: -1;
+        margin-bottom: 24px;
+      }
+    }
+    @media (max-width: 768px) {
+      header.app-header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .header-actions {
+        flex-wrap: wrap;
+      }
+      .search-box {
+        width: 100%;
+      }
+      .phone-mockup {
+        width: 320px;
+        height: 660px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Light Effect -->
+  <div class="ambient-glow-bg"></div>
+
+  <!-- Top Global Navigation Header -->
+  <header class="app-header">
+    <div class="brand-group">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-text">
+        <h1>Vibe Coding Mobile UI Compass <span class="brand-badge">30 AESTHETICS PRO</span></h1>
+        <p>30种手机UI设计风格真机仿真 · 专业Vibe Coding提示词配方 · 灵魂CSS提取</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Search Box -->
+      <div class="search-box">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        <input type="text" id="searchInput" placeholder="搜索风格、术语、特性 (快捷键 '/')">
+      </div>
+
+      <!-- Auto Tour Button -->
+      <button class="tour-btn" id="tourBtn" title="每4秒自动巡航切换下一套风格 (快捷键: Space)">
+        <span>▶ 自动巡览模式</span>
+      </button>
+
+      <!-- View Switcher -->
+      <div class="view-switcher">
+        <button class="view-btn active" data-view="focus">
+          <span>📱 聚焦真机</span>
+        </button>
+        <button class="view-btn" data-view="compare">
+          <span>⚖️ 双机对比</span>
+        </button>
+        <button class="view-btn" data-view="gallery">
+          <span>🗂️ 30屏平铺</span>
+        </button>
+        <button class="view-btn" data-view="cheatsheet">
+          <span>📋 提示词速查</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Category Filter Strip -->
+  <nav class="filter-strip" id="filterStrip">
+    <button class="filter-chip active" data-category="all">全部风格 <span class="count">30</span></button>
+    <button class="filter-chip" data-category="minimal">现代极简与数字科技 <span class="count">5</span></button>
+    <button class="filter-chip" data-category="depth">玻璃拟物与空间深度 <span class="count">5</span></button>
+    <button class="filter-chip" data-category="cyber">赛博、科幻与未来主义 <span class="count">5</span></button>
+    <button class="filter-chip" data-category="pop">潮流、趣味与青年文化 <span class="count">5</span></button>
+    <button class="filter-chip" data-category="editorial">人文社科、复刻与东方意境 <span class="count">5</span></button>
+    <button class="filter-chip" data-category="functional">功能级业务专属体系 <span class="count">5</span></button>
+  </nav>
+
+  <!-- Keyboard Shortcuts Tip Strip -->
+  <div class="shortcut-bar">
+    <div>
+      <span>键盘快捷键：</span>
+      <span class="kbd-badge">←</span><span class="kbd-badge">→</span> 或 <span class="kbd-badge">J</span><span class="kbd-badge">K</span> 快速切歌式切风格
+      <span class="kbd-badge">Space</span> 巡览
+      <span class="kbd-badge">C</span> 复制当前 Prompt
+      <span class="kbd-badge">D</span> 切换反转模式
+      <span class="kbd-badge">/</span> 聚焦搜索
+    </div>
+    <div id="quickStatusHint">已就绪 · 单击手机灵动岛与屏幕组件体验互动</div>
+  </div>
+
+  <!-- Main Workstation -->
+  <main class="main-container">
+
+    <!-- VIEW 1: Split Focus View (Default) -->
+    <section class="focus-view" id="focusView">
+
+      <!-- Left Column: Dossier Details & 30 Styles Selection Grid -->
+      <div class="catalog-column">
+
+        <!-- Active Style Hero Dossier Card -->
+        <article class="active-dossier-card" id="activeDossier">
+          <div class="dossier-header">
+            <div class="dossier-title-area">
+              <h2 id="dossierTitle">Neo-Brutalism (新野兽派) <span style="font-size:15px; color:#FFE600;">#01</span></h2>
+              <p class="subtitle" id="dossierSubtitle">高对比度粗黑描边、硬投影与高饱和波普调色，传递强烈的触觉与力量感</p>
+            </div>
+            <span class="dossier-badge-category" id="dossierCategory">潮流与趣味</span>
+          </div>
+
+          <!-- Vibe Prompt Box with Multi-Format Tabs -->
+          <div class="vibe-prompt-section">
+            <div class="vibe-prompt-header">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <span class="vibe-label">
+                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z"/></svg>
+                  VIBE CODING PROMPT
+                </span>
+                <div class="prompt-tab-group">
+                  <button class="format-tab-btn active" data-format="natural">AI 自然语言提示词</button>
+                  <button class="format-tab-btn" data-format="tailwind">Tailwind 配置</button>
+                  <button class="format-tab-btn" data-format="css">CSS Tokens</button>
+                </div>
+              </div>
+              <button class="copy-action-btn" id="copyPromptBtn">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
+                复制 Prompt
+              </button>
+            </div>
+            <div class="vibe-prompt-text" id="dossierPromptText">Design a vibrant mobile app screen in Neo-Brutalism style. Use 3px solid black borders (#000000), hard unblurred drop-shadows (4px 4px 0px #000), bright pop accent colors like acid yellow (#FFE600) and electric cyan (#4DEEEA). Employ bold grotesque typography, chunky tactile cards, solid black pill badges, and high-contrast tactile buttons.</div>
+          </div>
+
+          <!-- Keywords Chips -->
+          <div class="keywords-row" id="dossierKeywords"></div>
+
+          <!-- Design Philosophy & Best Use Cases -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+            <div style="background: rgba(0,0,0,0.25); padding: 14px; border-radius: 10px; border: 1px solid var(--border-subtle);">
+              <div style="font-size: 11px; font-weight:800; color:var(--text-muted); margin-bottom: 4px; text-transform:uppercase;">设计调性与心理感受</div>
+              <div style="font-size: 13px; color: var(--text-secondary);" id="dossierPhilosophy">叛逆、自信、年轻潮流，打破传统扁平化的虚浮感，强调实打实的物理触感与视觉冲撞。</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.25); padding: 14px; border-radius: 10px; border: 1px solid var(--border-subtle);">
+              <div style="font-size: 11px; font-weight:800; color:var(--text-muted); margin-bottom: 4px; text-transform:uppercase;">最佳移动端适用场景</div>
+              <div style="font-size: 13px; color: var(--text-secondary);" id="dossierBestFor">Z世代潮玩电商、创意灵感社区、潮流习惯打卡、独立开发者工具。</div>
+            </div>
+          </div>
+
+          <!-- Color Tokens Board -->
+          <div style="font-size: 12px; font-weight:800; color:var(--text-secondary); margin-bottom: 10px; display:flex; justify-content:space-between;">
+            <span>🎨 调色板 HEX TOKENS (点击色块即可复制)</span>
+            <span style="font-size:11px; color:var(--text-muted);">5 Tokens</span>
+          </div>
+          <div class="tokens-grid" id="dossierTokens"></div>
+
+          <!-- Core CSS Recipe Snippet -->
+          <div class="css-snippet-box">
+            <div class="css-snippet-header">
+              <span>⚡ 核心 CSS 灵魂配方 (Core CSS Recipe)</span>
+              <button class="copy-action-btn" style="padding: 4px 10px; font-size: 11px;" id="copyCssBtn">复制代码</button>
+            </div>
+            <pre class="css-snippet-code" id="dossierCssCode"></pre>
+          </div>
+        </article>
+
+        <!-- 30 Styles Selection Cards Grid -->
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <h3 style="font-size: 17px; font-weight:800;">全部 30 款风格交互选择器</h3>
+            <span style="font-size: 12px; color:var(--text-muted);" id="resultsCountText">显示全部 30 套风格</span>
+          </div>
+          <div class="style-cards-grid" id="styleCardsGrid"></div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Sticky Live Smartphone Simulator -->
+      <div class="simulator-column">
+
+        <!-- Simulator Toolbar -->
+        <div class="simulator-toolbar">
+          <span style="font-weight:700; color:#fff;" id="simCurrentStyleLabel">Neo-Brutalism</span>
+          <div style="display:flex; gap: 4px;">
+            <button class="sim-tool-btn" id="toggleDarkModeBtn" title="切换模拟器反转对比度 (快捷键: D)">🌓 反转</button>
+            <button class="sim-tool-btn" id="randomStyleBtn" title="随机切换一种风格">🎲 随机</button>
+            <button class="sim-tool-btn" id="restartSimBtn" title="重置交互状态">🔄 刷新</button>
+          </div>
+        </div>
+
+        <!-- The Physical Smartphone Chassis -->
+        <div class="phone-mockup" id="phoneMockupFrame">
+          <div class="phone-screen" id="phoneScreen">
+
+            <!-- Top Status Bar & Dynamic Island -->
+            <div class="phone-status-bar" id="phoneStatusBar">
+              <span>9:41</span>
+              <!-- Interactive Dynamic Island -->
+              <div class="dynamic-island" id="dynamicIsland" title="点击展开/收起灵动岛">
+                <div style="display:flex; align-items:center; gap:5px;">
+                  <span style="color:#10B981; font-size:8px;">●</span>
+                  <span style="font-size:9px; font-weight:700;" id="islandLabel">Live</span>
+                </div>
+                <div class="dynamic-camera-lens"></div>
+              </div>
+              <div style="display:flex; gap: 4px; align-items:center;">
+                <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 22l7.03-4.39C20.26 16.07 21 14.12 21 12c0-4.97-4.03-9-9-9z"/></svg>
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
+              </div>
+            </div>
+
+            <!-- Scrollable Mobile App Screen UI (Dynamically Styled & Interactive) -->
+            <div class="screen-content" id="screenContent"></div>
+
+            <!-- Sticky Bottom Tab Bar -->
+            <div class="phone-tab-bar" id="phoneTabBar"></div>
+
+            <!-- Home Indicator Bar -->
+            <div class="home-indicator"></div>
+
+          </div>
+        </div>
+
+        <div style="font-size: 11px; color: var(--text-muted); text-align: center; max-width: 340px;">
+          💡 提示：内部每一个卡片、旋钮、滑块、开关和 Tab 导航均为真实交互组件，可直接用鼠标点击体验触感。
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- VIEW 2: Side-by-Side Dual Phone Comparison -->
+    <section class="compare-view" id="compareView">
+      <div class="compare-selectors-bar">
+        <div class="compare-select-wrapper">
+          <label>左侧对比风格 A：</label>
+          <select class="compare-select" id="compareSelectA"></select>
+        </div>
+        <div style="font-size:18px; font-weight:900; color:var(--brand-primary);">VS</div>
+        <div class="compare-select-wrapper">
+          <label>右侧对比风格 B：</label>
+          <select class="compare-select" id="compareSelectB"></select>
+        </div>
+      </div>
+
+      <div class="dual-phones-container">
+        <!-- Phone A -->
+        <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+          <h4 id="compareTitleA" style="font-size:16px; font-weight:800; color:#818CF8;">Style A</h4>
+          <div class="phone-mockup" style="width:360px; height:740px;">
+            <div class="phone-screen" id="phoneScreenA">
+              <div class="phone-status-bar" id="phoneStatusBarA"><span>9:41</span><div class="dynamic-island"><div class="dynamic-camera-lens"></div></div><span>5G</span></div>
+              <div class="screen-content" id="screenContentA"></div>
+              <div class="phone-tab-bar" id="phoneTabBarA"></div>
+              <div class="home-indicator"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phone B -->
+        <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+          <h4 id="compareTitleB" style="font-size:16px; font-weight:800; color:#EC4899;">Style B</h4>
+          <div class="phone-mockup" style="width:360px; height:740px;">
+            <div class="phone-screen" id="phoneScreenB">
+              <div class="phone-status-bar" id="phoneStatusBarB"><span>9:41</span><div class="dynamic-island"><div class="dynamic-camera-lens"></div></div><span>5G</span></div>
+              <div class="screen-content" id="screenContentB"></div>
+              <div class="phone-tab-bar" id="phoneTabBarB"></div>
+              <div class="home-indicator"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: 30 Styles All-Grid Gallery -->
+    <section class="gallery-grid-view" id="galleryView"></section>
+
+    <!-- VIEW 4: Vibe Cheat-Sheet Table -->
+    <section class="cheatsheet-view" id="cheatsheetView">
+      <table class="vibe-table">
+        <thead>
+          <tr>
+            <th>序号 / 风格名称</th>
+            <th>视觉流派</th>
+            <th>Vibe Coding 核心英文 Prompt 提示词</th>
+            <th>核心调色板 Hex</th>
+            <th>CSS 关键灵魂属性</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="cheatsheetTableBody"></tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <!-- Global Toast for Feedback -->
+  <div class="toast-popup" id="toastPopup">
+    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+    <span id="toastMessage">已成功复制到剪贴板！</span>
+  </div>
+
+  <!-- Database & Interactivity Engine -->
+  <script>
+    /* ==========================================================================
+       30 MOBILE UI STYLES COMPLETE DATABASE WITH BESPOKE RENDERERS
+       ========================================================================== */
+    const UI_STYLES = [
+      // 01 Neo-Brutalism
+      {
+        id: "neo-brutalism",
+        num: "01",
+        name: "Neo-Brutalism",
+        nameZh: "新野兽派",
+        category: "pop",
+        categoryZh: "潮流与趣味",
+        subtitle: "高对比粗黑描边、硬投影与高饱和波普调色，强烈的实体触觉冲击",
+        philosophy: "打破过度平滑的现代审美疲劳，以坦荡、原始、高物理感的设计表达数字世界的真实自信与叛逆。",
+        bestFor: "Z世代潮玩电商、创意设计社区、潮流背单词/打卡工具、独立开发者主页。",
+        keywords: ["high contrast", "3px solid black border", "box-shadow: 4px 4px 0 #000", "acid yellow #FFE600", "bold grotesque font", "chunky tactile buttons", "sticker badges"],
+        prompt: "Design a mobile app screen in Neo-Brutalism style. Use 3px solid black borders (#000000), hard unblurred drop-shadows (box-shadow: 4px 4px 0px #000), bright pop accent colors like acid yellow (#FFE600) and electric cyan (#4DEEEA). Employ bold grotesque typography, chunky tactile cards, solid black pill badges, and high-contrast tactile buttons with active press states.",
+        tailwindConfig: `// tailwind.config.js - Neo-Brutalism
+module.exports = {
+  theme: {
+    extend: {
+      colors: { neoYellow: '#FFE600', neoCyan: '#4DEEEA', neoPink: '#FF5E7E' },
+      boxShadow: { neo: '4px 4px 0px 0px #000000', neoSm: '2px 2px 0px 0px #000000' },
+      borderWidth: { 3: '3px' }
+    }
+  }
+}`,
+        colors: [
+          { name: "Acid Yellow", hex: "#FFE600" },
+          { name: "Electric Cyan", hex: "#4DEEEA" },
+          { name: "Pitch Black", hex: "#000000" },
+          { name: "Pure White", hex: "#FFFFFF" },
+          { name: "Neon Coral", hex: "#FF5E7E" }
+        ],
+        cssSnippet: `.neo-card {
+  background: #FFFFFF;
+  border: 3px solid #000000;
+  box-shadow: 4px 4px 0px #000000;
+  border-radius: 14px;
+}
+.neo-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px #000000;
+}`,
+        phoneTheme: { bg: "#FFFBEB", text: "#000000", statusBarText: "#000000", fontFamily: "'Inter', sans-serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <div class="app-brand-badge">
+              <div style="width:36px; height:36px; background:#FFE600; border:2.5px solid #000; box-shadow:2px 2px 0 #000; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:16px;">★</div>
+              <div><h5 style="font-weight:900; font-size:16px;">VIBE SHOP</h5><p style="font-weight:700; color:#000; font-size:11px;">DROP #402 IS LIVE</p></div>
+            </div>
+            <button style="background:#4DEEEA; border:2.5px solid #000; box-shadow:2px 2px 0 #000; padding:5px 12px; font-weight:800; font-size:12px; border-radius:6px; cursor:pointer;">CART (3)</button>
+          </div>
+          <div style="background:#FFE600; border:3px solid #000; box-shadow:4px 4px 0 #000; border-radius:14px; padding:16px;">
+            <span style="background:#000; color:#FFF; font-size:10px; font-weight:900; padding:2px 8px; border-radius:4px;">HOT DROP</span>
+            <h3 style="font-weight:900; font-size:22px; margin:8px 0 4px 0;">NEO CYBER HOODIE</h3>
+            <p style="font-size:12px; font-weight:700; margin-bottom:12px;">Heavyweight 500GSM raw unbleached cotton.</p>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:20px; font-weight:900;">$149.00</span>
+              <button onclick="showToast('已加入野兽购物车！')" style="background:#FF5E7E; color:#FFF; border:2.5px solid #000; box-shadow:3px 3px 0 #000; padding:8px 16px; font-weight:900; font-size:12px; border-radius:8px; cursor:pointer;">BUY NOW ➔</button>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div style="background:#FFFFFF; border:2.5px solid #000; box-shadow:3px 3px 0 #000; border-radius:12px; padding:12px;">
+              <div style="font-size:10px; font-weight:800;">COMMUNITY</div><div style="font-size:22px; font-weight:900; margin:4px 0;">42.8K</div><div style="font-size:11px; font-weight:700; color:#10B981;">▲ +18.4%</div>
+            </div>
+            <div style="background:#4DEEEA; border:2.5px solid #000; box-shadow:3px 3px 0 #000; border-radius:12px; padding:12px;">
+              <div style="font-size:10px; font-weight:800;">STREAK</div><div style="font-size:22px; font-weight:900; margin:4px 0;">28 DAYS</div><div style="font-size:11px; font-weight:700;">LEVEL 04 MASTER</div>
+            </div>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#000;"><span style="font-size:18px;">🏠</span><span>SHOP</span></div>
+          <div class="tab-item" style="color:#000;"><span style="font-size:18px;">🔥</span><span>DROPS</span></div>
+          <div class="tab-item" style="color:#000;"><span style="font-size:18px;">⚡</span><span>QUEST</span></div>
+          <div class="tab-item" style="color:#000;"><span style="font-size:18px;">👤</span><span>ME</span></div>
+        `
+      },
+
+      // 02 Minimalist Scandinavian
+      {
+        id: "minimal-nordic",
+        num: "02",
+        name: "Minimalist Scandinavian",
+        nameZh: "北欧极简纯白",
+        category: "minimal",
+        categoryZh: "现代极简与数字科技",
+        subtitle: "极其开阔的留白、0.5px 发丝级微弱描边与中性灰阶，无压迫的平静克制",
+        philosophy: "删繁就简，少即是多。通过严苛的排版字阶与温润的灰阶消解信息焦虑，让核心内容自在呼吸。",
+        bestFor: "极简日记笔记、个人财务记账、日程待办、高端音响遥控器。",
+        keywords: ["ultra generous whitespace", "hairline borders 0.5px", "subtle neutral grays", "tight tracking", "muted typography", "whisper drop-shadow", "soft rounded-2xl"],
+        prompt: "Design a clean Scandinavian minimalist mobile UI. Palette: pure snow white (#FFFFFF), delicate off-white (#F8F9FA), muted charcoal (#1E293B) and subtle gray (#64748B). Use hairline 0.5px borders (rgba(0,0,0,0.06)), generous whitespace, tight typography hierarchy (Inter/SF Pro), smooth rounded-2xl cards with soft whisper shadows (0 2px 8px rgba(0,0,0,0.02)).",
+        tailwindConfig: `// tailwind.config.js - Scandinavian Minimal
+module.exports = {
+  theme: {
+    extend: {
+      colors: { nordicSnow: '#FFFFFF', nordicCanvas: '#F8F9FA', nordicSlate: '#1E293B' },
+      boxShadow: { whisper: '0 2px 10px rgba(0,0,0,0.02)' },
+      borderRadius: { '2xl': '20px' }
+    }
+  }
+}`,
+        colors: [
+          { name: "Snow White", hex: "#FFFFFF" },
+          { name: "Soft Neutral", hex: "#F8F9FA" },
+          { name: "Charcoal Slate", hex: "#1E293B" },
+          { name: "Whisper Gray", hex: "#E2E8F0" },
+          { name: "Muted Blue", hex: "#3B82F6" }
+        ],
+        cssSnippet: `.nordic-card {
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.03);
+  border-radius: 20px;
+}`,
+        phoneTheme: { bg: "#F8F9FA", text: "#0F172A", statusBarText: "#0F172A", fontFamily: "'Inter', sans-serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <div class="app-brand-badge">
+              <div style="width:34px; height:34px; border-radius:50%; background:#E2E8F0; color:#0F172A; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px;">EK</div>
+              <div><h5 style="font-weight:600; font-size:14px;">God morgon, Erik</h5><p style="color:#64748B; font-size:11px;">Stockholm · 18°C Quiet Sun</p></div>
+            </div>
+            <div style="width:32px; height:32px; border-radius:50%; background:#FFFFFF; border:1px solid rgba(0,0,0,0.06); display:flex; align-items:center; justify-content:center; font-size:13px;">🔔</div>
+          </div>
+          <div style="background:#FFFFFF; border:1px solid rgba(0,0,0,0.06); border-radius:20px; padding:20px; box-shadow:0 4px 16px rgba(0,0,0,0.02);">
+            <span style="font-size:11px; color:#64748B; font-weight:600; letter-spacing:0.05em;">DAILY FOCUS</span>
+            <h3 style="font-size:20px; font-weight:600; color:#0F172A; margin:6px 0 2px 0;">Digital Detox & Silence</h3>
+            <p style="font-size:13px; color:#64748B; margin-bottom:16px;">45 of 60 minutes mindfulness completed today.</p>
+            <div style="height:6px; background:#F1F5F9; border-radius:9999px; overflow:hidden;">
+              <div style="width:75%; height:100%; background:#0F172A; border-radius:9999px;"></div>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="background:#FFFFFF; border:1px solid rgba(0,0,0,0.05); border-radius:14px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center;">
+              <div><div style="font-size:13px; font-weight:600;">Read Architecture Monograph</div><div style="font-size:11px; color:#94A3B8;">Alvar Aalto · Ch. 3</div></div>
+              <span style="font-size:12px; color:#64748B;">20m</span>
+            </div>
+            <div style="background:#FFFFFF; border:1px solid rgba(0,0,0,0.05); border-radius:14px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center;">
+              <div><div style="font-size:13px; font-weight:600;">Herbal Tea Ritual</div><div style="font-size:11px; color:#94A3B8;">Wild Honey Infusion</div></div>
+              <span style="font-size:12px; color:#10B981;">Done</span>
+            </div>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#0F172A;"><span style="font-size:17px;">●</span><span>Today</span></div>
+          <div class="tab-item" style="color:#94A3B8;"><span style="font-size:17px;">○</span><span>Reflect</span></div>
+          <div class="tab-item" style="color:#94A3B8;"><span style="font-size:17px;">○</span><span>Audio</span></div>
+        `
+      },
+
+      // 03 Linear Dark
+      {
+        id: "linear-dark",
+        num: "03",
+        name: "Linear / Raycast Dark",
+        nameZh: "极客高精暗黑质感",
+        category: "minimal",
+        categoryZh: "现代极简与数字科技",
+        subtitle: "黑曜石级暗色、微光边缘描边与高精度微对比，开发者的终极审美",
+        philosophy: "追求像素级的精致与效率。通过微弱的径向高光和等宽元数据标签，构建沉稳而强大的专业生产力气场。",
+        bestFor: "AI原生交互工具、开发者移动端终端、GitHub客户端、云原生运维看板。",
+        keywords: ["obsidian black #0B0D0E", "hairline glow border", "radial spotlight", "monospace tag", "keyboard-first", "high micro-contrast"],
+        prompt: "Create an ultra-sleek Linear / Raycast inspired dark mode mobile UI. Dark obsidian background (#0B0D0E, #121518), hairline border accents (1px solid rgba(255,255,255,0.08)), subtle radial gradients for hover/active glow, purple-indigo pill indicators, refined monospace metadata tags, and razor-sharp typography.",
+        colors: [
+          { name: "Obsidian", hex: "#0B0D0E" },
+          { name: "Surface Dark", hex: "#16191E" },
+          { name: "Laser Violet", hex: "#8B5CF6" },
+          { name: "Border Glow", hex: "#2A2E39" },
+          { name: "High White", hex: "#F8FAFC" }
+        ],
+        cssSnippet: `.linear-card {
+  background: linear-gradient(180deg, #161922 0%, #101217 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border-radius: 16px;
+}`,
+        phoneTheme: { bg: "#0B0D0E", text: "#F8FAFC", statusBarText: "#FFFFFF", fontFamily: "'Inter', monospace" },
+        render: () => `
+          <div class="app-nav-row">
+            <div class="app-brand-badge">
+              <div style="width:30px; height:30px; border-radius:8px; background:#1C1F26; border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#A78BFA; font-weight:700;">⌘</div>
+              <div><h5 style="font-weight:600; font-size:14px; color:#F8FAFC;">Acme Core Engine</h5><p style="color:#94A3B8; font-family:'JetBrains Mono'; font-size:10px;">main · sha256:7f3a9</p></div>
+            </div>
+            <span style="background:rgba(139,92,246,0.15); border:1px solid rgba(139,92,246,0.3); color:#C4B5FD; font-size:10px; font-weight:600; padding:3px 8px; border-radius:9999px;">v2.4.0-rc</span>
+          </div>
+          <div style="background:linear-gradient(180deg, #161922 0%, #101217 100%); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:18px; box-shadow:0 8px 30px rgba(0,0,0,0.6);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span style="font-size:11px; font-family:'JetBrains Mono'; color:#818CF8;">CPU LATENCY</span>
+              <span style="font-size:11px; color:#10B981; font-weight:600;">99.98% Nominal</span>
+            </div>
+            <div style="font-size:28px; font-weight:700; color:#FFFFFF; font-family:'JetBrains Mono';">12.4ms</div>
+            <div style="font-size:11px; color:#64748B; margin-bottom:14px;">-4.2ms from previous build iteration</div>
+            <div style="display:flex; gap:3px; height:32px; align-items:flex-end;">
+              <div style="flex:1; height:40%; background:rgba(139,92,246,0.3); border-radius:2px;"></div>
+              <div style="flex:1; height:60%; background:rgba(139,92,246,0.4); border-radius:2px;"></div>
+              <div style="flex:1; height:85%; background:rgba(139,92,246,0.6); border-radius:2px;"></div>
+              <div style="flex:1; height:65%; background:rgba(139,92,246,0.5); border-radius:2px;"></div>
+              <div style="flex:1; height:30%; background:#8B5CF6; border-radius:2px;"></div>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="background:#13161C; border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between;">
+              <div style="display:flex; align-items:center; gap:8px;"><span style="color:#F59E0B; font-size:11px;">🟡</span><span style="font-size:12px; color:#E2E8F0;">ENG-1042 Vector search sync</span></div>
+              <span style="font-size:10px; font-family:'JetBrains Mono'; color:#64748B;">Todo</span>
+            </div>
+            <div style="background:#13161C; border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between;">
+              <div style="display:flex; align-items:center; gap:8px;"><span style="color:#10B981; font-size:11px;">🟢</span><span style="font-size:12px; color:#E2E8F0;">ENG-1039 WASM JIT optimize</span></div>
+              <span style="font-size:10px; font-family:'JetBrains Mono'; color:#10B981;">Merged</span>
+            </div>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#8B5CF6;"><span style="font-size:16px;">⌘</span><span>Issues</span></div>
+          <div class="tab-item" style="color:#64748B;"><span style="font-size:16px;">⎇</span><span>Projects</span></div>
+          <div class="tab-item" style="color:#64748B;"><span style="font-size:16px;">⚡</span><span>Triage</span></div>
+        `
+      },
+
+      // 04 Swiss Grid
+      {
+        id: "swiss-grid",
+        num: "04",
+        name: "Swiss International Typo",
+        nameZh: "瑞士国际主义排版",
+        category: "minimal",
+        categoryZh: "现代极简与数字科技",
+        subtitle: "严苛网格、巨大非对称无衬线标题与朱砂红点缀，纯粹的功能主义理性",
+        philosophy: "形式永远服从于内容。摒弃一切无意义的装饰，用严谨的数学比例与字体对比讲述最纯粹的信息秩序。",
+        bestFor: "新闻深度阅读、建筑与工业设计媒体、现代艺术摄影展、思想智库期刊。",
+        keywords: ["rigid modular grid", "oversized bold sans-serif", "high-contrast black/white", "vermillion red #FF3B30", "zero decorative fluff"],
+        prompt: "Design a mobile interface following the Swiss International Typographic Style. Strict modular grid alignment, stark black and white contrast with a single bold Vermillion Red (#FF3B30) accent. Oversized heavy sans-serif headings (Akzidenz/Helvetica), sharp rectangular geometry without rounded corners (border-radius: 0px), and clean horizontal dividing rules.",
+        colors: [
+          { name: "Pitch Black", hex: "#000000" },
+          { name: "Stark White", hex: "#FFFFFF" },
+          { name: "Swiss Vermillion", hex: "#FF3B30" },
+          { name: "Neutral Concrete", hex: "#E5E5E5" }
+        ],
+        cssSnippet: `.swiss-container {
+  border-radius: 0px;
+  border-left: 3px solid #000000;
+  padding: 16px;
+  background: #FFFFFF;
+}`,
+        phoneTheme: { bg: "#F4F4F4", text: "#000000", statusBarText: "#000000", fontFamily: "'Inter', sans-serif" },
+        render: () => `
+          <div class="app-nav-row" style="border-bottom:2px solid #000; padding-bottom:8px;">
+            <h5 style="font-weight:900; font-size:16px; letter-spacing:-0.03em;">SWISS ARCHIVE</h5>
+            <span style="background:#FF3B30; color:#FFF; font-weight:800; font-size:11px; padding:2px 8px;">ISSUE 04</span>
+          </div>
+          <div style="border-left:4px solid #000; padding-left:14px;">
+            <div style="font-size:11px; font-weight:800; color:#FF3B30;">MODERNISM 1957</div>
+            <h2 style="font-size:32px; font-weight:900; line-height:0.95; letter-spacing:-0.05em; margin:8px 0;">NEUE GRAFIK.</h2>
+            <p style="font-size:12px; font-weight:500; line-height:1.4;">Rational order established through the mathematical division of two-dimensional planes.</p>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; border-top:1px solid #000; border-bottom:1px solid #000;">
+            <div style="padding:12px; border-right:1px solid #000;">
+              <div style="font-size:24px; font-weight:900;">08</div><div style="font-size:10px; font-weight:700;">COLUMNS</div>
+            </div>
+            <div style="padding:12px; background:#000; color:#FFF;">
+              <div style="font-size:24px; font-weight:900; color:#FF3B30;">100%</div><div style="font-size:10px; font-weight:700;">LEGIBILITY</div>
+            </div>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#000;"><span style="font-weight:900; font-size:14px;">01</span><span>GRID</span></div>
+          <div class="tab-item" style="color:#888;"><span style="font-weight:900; font-size:14px;">02</span><span>INDEX</span></div>
+          <div class="tab-item" style="color:#888;"><span style="font-weight:900; font-size:14px;">03</span><span>TEXT</span></div>
+        `
+      },
+
+      // 05 Monochrome Luxury
+      {
+        id: "monochrome-luxury",
+        num: "05",
+        name: "Monochrome High-Fashion",
+        nameZh: "黑白高奢先锋",
+        category: "minimal",
+        categoryZh: "现代极简与数字科技",
+        subtitle: "极致纯黑白、Bodoni/Playfair 经典衬线标题与金属香槟金微点缀，高定气场",
+        philosophy: "奢华不需要喧闹的色彩。通过黑与白的极致对抗以及衬线体的优雅弧度，呈现永恒的高级定制质感。",
+        bestFor: "奢侈品电商 Lookbook、高定时装展买手店、高端香水与名表甄选。",
+        keywords: ["pure monochrome grayscale", "editorial serif headings", "Playfair/Bodoni", "razor-sharp borders", "champagne gold #D4AF37"],
+        prompt: "Design a high-fashion luxury editorial mobile UI in pure monochrome. High-contrast pure black and off-white silk canvas (#FAF9F6). Elegant high-contrast serif typography for headings (Playfair / Bodoni), minimal razor-thin borders, generous spatial rhythm, and subtle champagne gold (#D4AF37) accents for micro-badges.",
+        colors: [
+          { name: "Velvet Black", hex: "#111111" },
+          { name: "Silk Ecru", hex: "#FAF9F6" },
+          { name: "Champagne Gold", hex: "#D4AF37" },
+          { name: "Pure White", hex: "#FFFFFF" }
+        ],
+        cssSnippet: `.luxury-title {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}`,
+        phoneTheme: { bg: "#FAF9F6", text: "#111111", statusBarText: "#111111", fontFamily: "'Playfair Display', serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <h5 style="font-family:'Playfair Display'; font-size:18px; font-weight:800; letter-spacing:0.08em;">MAISON NOIR</h5>
+            <span style="font-size:11px; color:#D4AF37; font-family:'Inter'; letter-spacing:0.1em;">PARIS</span>
+          </div>
+          <div style="background:#FFFFFF; border:1px solid rgba(17,17,17,0.08); padding:24px 18px; text-align:center;">
+            <span style="font-size:10px; letter-spacing:0.2em; color:#8E8E93; font-family:'Inter';">COLLECTION N° 07</span>
+            <h3 style="font-size:24px; font-weight:800; margin:8px 0;">Le Manteau Cachemire</h3>
+            <p style="font-size:12px; font-family:'Inter'; color:#666; margin-bottom:16px;">Hand-loomed in Biella, Italy. Limited 50 pieces.</p>
+            <div style="font-size:20px; font-family:'Inter'; font-weight:600; margin-bottom:16px;">€ 2,450</div>
+            <button style="background:#111; color:#FFF; border:none; padding:12px 28px; font-family:'Inter'; font-size:11px; letter-spacing:0.15em; text-transform:uppercase; cursor:pointer;">Acquire Piece</button>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#111;"><span style="font-size:14px;">Ⅰ</span><span>Lookbook</span></div>
+          <div class="tab-item" style="color:#888;"><span style="font-size:14px;">Ⅱ</span><span>Atelier</span></div>
+          <div class="tab-item" style="color:#888;"><span style="font-size:14px;">Ⅲ</span><span>Client</span></div>
+        `
+      },
+
+      // 06 Liquid Glassmorphism
+      {
+        id: "liquid-glassmorphism",
+        num: "06",
+        name: "Liquid Glassmorphism",
+        nameZh: "液态拟玻 (iOS 18 Ambient Glass)",
+        category: "depth",
+        categoryZh: "玻璃拟物与空间深度",
+        subtitle: "多重高斯模糊、半透明液态折射与虹彩高光边缘，通透如水",
+        philosophy: "让界面融于环境。界面不再是一堵死板的墙，而是一片能透射背景流光的灵动水晶，触动空间感知。",
+        bestFor: "高品质音乐流媒体播放器、智慧家庭环境控制、新一代系统控制中心。",
+        keywords: ["backdrop-filter: blur(24px)", "translucent frosted glass", "specular edge 1px rgba(255,255,255,0.3)", "iridescent ambient glow"],
+        prompt: "Create a modern Liquid Glassmorphism mobile UI inspired by Apple VisionOS and iOS 18 ambient glass. Multi-layer backdrop blur (backdrop-filter: blur(24px) saturate(180%)), semi-transparent frosted white surfaces (rgba(255,255,255,0.15)), specular 1px white border highlights, subtle inner shadows, and dynamic colorful ambient background orbs.",
+        colors: [
+          { name: "Glass Base", hex: "rgba(255,255,255,0.18)" },
+          { name: "Ambient Cyan", hex: "#06B6D4" },
+          { name: "Ambient Violet", hex: "#8B5CF6" },
+          { name: "Deep Background", hex: "#0F172A" }
+        ],
+        cssSnippet: `.liquid-glass {
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.2);
+  border-radius: 24px;
+}`,
+        phoneTheme: { bg: "linear-gradient(145deg, #1E1B4B 0%, #312E81 50%, #0F172A 100%)", text: "#FFFFFF", statusBarText: "#FFFFFF", fontFamily: "'Inter', sans-serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <div class="app-brand-badge">
+              <div style="width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,0.2); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.4); display:flex; align-items:center; justify-content:center; font-size:14px;">🎧</div>
+              <div><h5 style="font-weight:700; font-size:15px; color:#FFF;">Spatial Lossless</h5><p style="color:rgba(255,255,255,0.7); font-size:11px;">Dolby Atmos Active</p></div>
+            </div>
+            <div style="width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); display:flex; align-items:center; justify-content:center;">✨</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.15); backdrop-filter:blur(24px) saturate(180%); border:1px solid rgba(255,255,255,0.3); border-radius:24px; padding:20px; box-shadow:0 16px 36px rgba(0,0,0,0.3);">
+            <div style="width:100%; height:130px; border-radius:16px; background:linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 50%, #556270 100%); margin-bottom:14px; display:flex; align-items:center; justify-content:center; font-size:36px;">💿</div>
+            <h4 style="font-weight:700; font-size:17px; color:#FFF;">Midnight Horizon</h4>
+            <p style="color:rgba(255,255,255,0.7); font-size:12px; margin-bottom:16px;">Solaris Ambient Collective</p>
+            <div style="height:4px; background:rgba(255,255,255,0.2); border-radius:4px; position:relative; margin-bottom:16px;">
+              <div style="width:62%; height:100%; background:#FFF; border-radius:4px;"></div>
+              <div style="position:absolute; left:62%; top:50%; transform:translate(-50%, -50%); width:12px; height:12px; background:#FFF; border-radius:50%;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-around; align-items:center;">
+              <span>⏮</span><div style="width:46px; height:46px; border-radius:50%; background:rgba(255,255,255,0.25); border:1px solid rgba(255,255,255,0.5); display:flex; align-items:center; justify-content:center;">❚❚</div><span>⏭</span>
+            </div>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#FFF;"><span style="font-size:16px;">♫</span><span>Listen</span></div>
+          <div class="tab-item" style="color:rgba(255,255,255,0.5);"><span style="font-size:16px;">🔍</span><span>Search</span></div>
+          <div class="tab-item" style="color:rgba(255,255,255,0.5);"><span style="font-size:16px;">📚</span><span>Library</span></div>
+        `
+      },
+
+      // 07 Soft Neumorphism 2.0
+      {
+        id: "soft-neumorphism",
+        num: "07",
+        name: "Soft Neumorphism 2.0",
+        nameZh: "微柔新拟态 (Soft UI)",
+        category: "depth",
+        categoryZh: "玻璃拟物与空间深度",
+        subtitle: "摒弃脏阴影的进化版双向柔光映射，如同挤压高档温润黏土",
+        philosophy: "重构实体触觉。利用两束反向自然光晕营造仿佛从背景中自然凸起或凹陷的触觉幻象，温润且柔和。",
+        bestFor: "智能恒温器调节界面、冥想助眠白噪音、高端新能源车机遥控器。",
+        keywords: ["dual soft shadows", "warm clay undertone", "tactile depression", "soft pill toggle", "debossed surface"],
+        prompt: "Design a refined Soft Neumorphism 2.0 mobile interface. Neutral warm-gray background (#E8ECEF). Cards and buttons seamlessly extruded from background using dual-direction soft lighting: box-shadow: -6px -6px 14px #FFFFFF, 6px 6px 14px #CBD5E1. Tactile debossed active states, pill-shaped toggles, clean pastel turquoise accent (#14B8A6).",
+        colors: [
+          { name: "Clay Canvas", hex: "#E8ECEF" },
+          { name: "Light Specular", hex: "#FFFFFF" },
+          { name: "Soft Shadow", hex: "#CBD5E1" },
+          { name: "Teal Accent", hex: "#14B8A6" }
+        ],
+        cssSnippet: `.neu-surface {
+  background: #E8ECEF;
+  border-radius: 22px;
+  box-shadow: 7px 7px 16px #CBD5E1, -7px -7px 16px #FFFFFF;
+}`,
+        phoneTheme: { bg: "#E8ECEF", text: "#334155", statusBarText: "#334155", fontFamily: "'Inter', sans-serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <h5 style="font-weight:700; font-size:15px; color:#334155;">Living Room Climate</h5>
+            <div style="width:34px; height:34px; border-radius:50%; background:#E8ECEF; box-shadow:3px 3px 6px #CBD5E1, -3px -3px 6px #FFFFFF; display:flex; align-items:center; justify-content:center;">❄️</div>
+          </div>
+          <div style="background:#E8ECEF; border-radius:26px; padding:24px; box-shadow:8px 8px 18px #CBD5E1, -8px -8px 18px #FFFFFF; text-align:center;">
+            <span style="font-size:11px; font-weight:700; color:#64748B;">TARGET TEMPERATURE</span>
+            <div style="font-size:46px; font-weight:800; color:#1E293B; margin:8px 0;">22.5°<span style="font-size:22px; color:#14B8A6;">C</span></div>
+            <div style="display:flex; justify-content:center; gap:20px; margin-top:12px;">
+              <button onclick="showToast('温度调低 -0.5°C')" style="width:44px; height:44px; border-radius:50%; border:none; background:#E8ECEF; box-shadow:4px 4px 8px #CBD5E1, -4px -4px 8px #FFFFFF; font-size:18px; font-weight:800; color:#334155; cursor:pointer;">−</button>
+              <button onclick="showToast('温度调高 +0.5°C')" style="width:44px; height:44px; border-radius:50%; border:none; background:#E8ECEF; box-shadow:4px 4px 8px #CBD5E1, -4px -4px 8px #FFFFFF; font-size:18px; font-weight:800; color:#334155; cursor:pointer;">+</button>
+            </div>
+          </div>
+          <div style="background:#E8ECEF; border-radius:18px; padding:14px 18px; box-shadow:inset 3px 3px 6px #CBD5E1, inset -3px -3px 6px #FFFFFF; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:13px; font-weight:600; color:#334155;">Eco Intelligent Mode</span>
+            <div style="width:46px; height:24px; border-radius:12px; background:#14B8A6; padding:2px; display:flex; align-items:center;"><div style="width:20px; height:20px; border-radius:50%; background:#FFF; margin-left:auto;"></div></div>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#14B8A6;"><span style="font-size:17px;">●</span><span>Home</span></div>
+          <div class="tab-item" style="color:#94A3B8;"><span style="font-size:17px;">○</span><span>Stats</span></div>
+          <div class="tab-item" style="color:#94A3B8;"><span style="font-size:17px;">○</span><span>Devices</span></div>
+        `
+      },
+
+      // 08 Spatial VisionOS
+      {
+        id: "spatial-vision",
+        num: "08",
+        name: "Spatial / VisionOS UI",
+        nameZh: "空间计算悬浮分层",
+        category: "depth",
+        categoryZh: "玻璃拟物与空间深度",
+        subtitle: "多层纵深 Z 轴悬浮、大弧度超椭圆 (Squircle 28px) 与视线注视流光",
+        philosophy: "为三维世界而生的二维界面。每一个面板都是悬浮在现实世界中的空间切片，拥有独立的光线交互与体积感。",
+        bestFor: "Apple Vision Pro 伴侣 App、空间全景相册、沉浸式 3D 影音播客。",
+        keywords: ["volumetric floating glass", "z-depth parallax layers", "squircle curves rounded-[28px]", "ambient depth illumination", "gaze hover glow"],
+        prompt: "Design a VisionOS inspired spatial computing mobile UI. Semi-translucent dark smoked glass panels, deep z-axis spatial elevation, large squircle corners (rounded-[28px]), ambient rim lighting that simulates gaze focus, floating layered widgets, and ultra-crisp white iconography.",
+        colors: [
+          { name: "Smoked Glass", hex: "rgba(30,30,35,0.75)" },
+          { name: "Gaze Cyan", hex: "#38BDF8" },
+          { name: "Space Black", hex: "#0A0A0C" }
+        ],
+        cssSnippet: `.spatial-card {
+  background: rgba(30, 30, 38, 0.72);
+  backdrop-filter: blur(30px);
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  border-radius: 28px;
+}`,
+        phoneTheme: { bg: "#0A0A0C", text: "#F8FAFC", statusBarText: "#F8FAFC", fontFamily: "'Inter', sans-serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <h5 style="font-weight:700; font-size:16px; color:#FFF;">Spatial Studio</h5>
+            <span style="background:rgba(56,189,248,0.2); border:1px solid #38BDF8; color:#38BDF8; font-size:11px; padding:2px 8px; border-radius:9999px;">VisionOS 2.0</span>
+          </div>
+          <div style="background:rgba(30,30,38,0.75); backdrop-filter:blur(30px); border:1.5px solid rgba(255,255,255,0.18); border-radius:28px; padding:22px; box-shadow:0 20px 50px rgba(0,0,0,0.6);">
+            <div style="font-size:11px; color:#38BDF8; font-weight:700;">VOLUMETRIC OBJECT #88</div>
+            <h3 style="font-size:22px; font-weight:800; color:#FFF; margin:6px 0 2px 0;">Cosmic Nebula 3D</h3>
+            <p style="font-size:12px; color:#94A3B8; margin-bottom:16px;">Direct immersive stereoscopic rendering ready.</p>
+            <button onclick="showToast('空间投影已激活')" style="width:100%; background:linear-gradient(90deg, #38BDF8, #818CF8); color:#000; border:none; padding:12px; border-radius:18px; font-weight:800; font-size:12px; cursor:pointer;">PROJECT INTO ROOM ➔</button>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#38BDF8;"><span style="font-size:16px;">⊞</span><span>Spaces</span></div>
+          <div class="tab-item" style="color:#64748B;"><span style="font-size:16px;">◎</span><span>Gaze</span></div>
+          <div class="tab-item" style="color:#64748B;"><span style="font-size:16px;">⚙</span><span>Specs</span></div>
+        `
+      },
+
+      // 09 Modern Skeuomorphism Craft
+      {
+        id: "modern-skeuomorphism",
+        num: "09",
+        name: "Modern Skeuomorphism Craft",
+        nameZh: "现代精密拟物工坊",
+        category: "depth",
+        categoryZh: "玻璃拟物与空间深度",
+        subtitle: "拉丝航空铝材、滚花旋钮微纹理与物理弹簧机械阻尼，重塑物理尊严",
+        philosophy: "反击无脑扁平化。重现高保真硬件设备的精工拉丝金属、碳纤维质感与微动开关，提供令人上瘾的真实握持感。",
+        bestFor: "专业音频均衡器、专业胶片相机调参、黑胶唱机模拟器、名贵机械表指南针。",
+        keywords: ["brushed aluminum", "knurled dial", "subtle stitch", "warm incandescent LED", "mechanical depth"],
+        prompt: "Create a modern skeuomorphic craft mobile UI inspired by Teenage Engineering and Leica cameras. Finely textured brushed dark titanium (#1F2428), knurled metallic rotary controls, amber LED status indicator lights (#F59E0B), realistic bevel borders, and mechanical spring switch toggles.",
+        colors: [
+          { name: "Brushed Titanium", hex: "#232830" },
+          { name: "Knurled Steel", hex: "#4A5568" },
+          { name: "Amber LED", hex: "#F59E0B" }
+        ],
+        cssSnippet: `.craft-panel {
+  background: linear-gradient(180deg, #2B303A 0%, #1E2229 100%);
+  border: 1px solid #475161;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 6px 18px rgba(0,0,0,0.5);
+  border-radius: 14px;
+}`,
+        phoneTheme: { bg: "#16191D", text: "#E2E8F0", statusBarText: "#FFFFFF", fontFamily: "'Inter', monospace" },
+        render: () => `
+          <div class="app-nav-row">
+            <h5 style="font-weight:700; font-size:14px; color:#F59E0B;">LEICA MASTER DIAL</h5>
+            <div style="width:8px; height:8px; border-radius:50%; background:#F59E0B; box-shadow:0 0 8px #F59E0B;"></div>
+          </div>
+          <div style="background:linear-gradient(180deg, #2B303A 0%, #1E2229 100%); border:1px solid #475161; box-shadow:inset 0 1px 0 rgba(255,255,255,0.15), 0 6px 18px rgba(0,0,0,0.5); border-radius:14px; padding:18px;">
+            <div style="font-size:11px; color:#A0AEC0; margin-bottom:10px;">ANALOG VU MONITOR</div>
+            <div style="height:32px; background:#111; border:1px solid #333; border-radius:6px; display:flex; align-items:center; padding:0 8px; position:relative;">
+              <div style="height:6px; width:75%; background:linear-gradient(90deg, #10B981, #F59E0B 80%, #EF4444 100%); border-radius:3px;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-around; margin-top:16px;">
+              <div style="text-align:center;">
+                <div style="width:48px; height:48px; border-radius:50%; background:radial-gradient(circle, #3D4452 0%, #20242C 100%); border:2px solid #5A667A; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#F59E0B; margin:0 auto 4px auto;">ISO</div>
+                <span style="font-size:10px;">400</span>
+              </div>
+              <div style="text-align:center;">
+                <div style="width:48px; height:48px; border-radius:50%; background:radial-gradient(circle, #3D4452 0%, #20242C 100%); border:2px solid #5A667A; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#F59E0B; margin:0 auto 4px auto;">f/1.4</div>
+                <span style="font-size:10px;">APERTURE</span>
+              </div>
+            </div>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#F59E0B;"><span style="font-size:15px;">◉</span><span>DIAL</span></div>
+          <div class="tab-item" style="color:#64748B;"><span style="font-size:15px;">⧉</span><span>OPTICS</span></div>
+          <div class="tab-item" style="color:#64748B;"><span style="font-size:15px;">⎔</span><span>ROLL</span></div>
+        `
+      },
+
+      // 10 Claymorphism 3D
+      {
+        id: "claymorphism-3d",
+        num: "10",
+        name: "Claymorphism 3D",
+        nameZh: "3D膨胀黏土风",
+        category: "depth",
+        categoryZh: "玻璃拟物与空间深度",
+        subtitle: "充气质感圆润泡泡形态、彩色弥散软阴影与糖果粉彩，童趣治愈",
+        philosophy: "给严肃的屏幕注入亲和力。圆滚滚的胖乎乎卡片与高弹性微动效，如同柔软的彩色黏土，让人忍不住想按压。",
+        bestFor: "儿童益智启蒙、亲子宠物养成游戏、趣味记账、年轻化社交打赏。",
+        keywords: ["inflated 3D pillowy shapes", "candy pastel clay", "bouncy squishy buttons", "rounded-3xl"],
+        prompt: "Design a playful Claymorphism 3D mobile app UI. Chunky, inflated marshmallow-like 3D cards with smooth rounded-3xl corners. Use pastel candy palette (bubblegum pink #F472B6, soft lavender #C084FC, mint green #34D399). Multi-layer colored drop shadows for deep pillowy volume.",
+        colors: [
+          { name: "Lavender Clay", hex: "#C084FC" },
+          { name: "Bubblegum Pink", hex: "#F472B6" },
+          { name: "Mint Sherbet", hex: "#34D399" }
+        ],
+        cssSnippet: `.clay-card {
+  background: #FFFFFF;
+  border-radius: 28px;
+  box-shadow: 0 18px 30px -6px rgba(192, 132, 252, 0.28), inset 0 6px 10px rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}`,
+        phoneTheme: { bg: "#FAF5FF", text: "#581C87", statusBarText: "#581C87", fontFamily: "'Inter', sans-serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <h5 style="font-weight:800; font-size:16px; color:#581C87;">Pet Pals World 🐣</h5>
+            <span style="background:#F472B6; color:#FFF; font-weight:800; font-size:11px; padding:3px 10px; border-radius:9999px;">LV. 12</span>
+          </div>
+          <div style="background:#FFFFFF; border-radius:28px; box-shadow:0 18px 30px -6px rgba(192,132,252,0.28), inset 0 6px 10px rgba(255,255,255,0.9); border:1px solid rgba(255,255,255,0.6); padding:22px; text-align:center;">
+            <div style="font-size:42px; margin-bottom:8px;">🐰</div>
+            <h3 style="font-size:20px; font-weight:800; color:#581C87;">Berry Bunny</h3>
+            <p style="font-size:12px; color:#9333EA; margin-bottom:16px;">Fullness: 92% · Happiness: 100%</p>
+            <button onclick="showToast('已投喂胡萝卜糖果 🥕')" style="background:linear-gradient(135deg, #F472B6, #C084FC); color:#FFF; border:none; padding:12px 26px; border-radius:9999px; font-weight:800; font-size:13px; cursor:pointer; box-shadow:0 8px 16px rgba(244,114,182,0.35);">FEED CANDY 🥕</button>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#C084FC;"><span style="font-size:16px;">🐾</span><span>Pet</span></div>
+          <div class="tab-item" style="color:#A855F7;"><span style="font-size:16px;">🍭</span><span>Shop</span></div>
+          <div class="tab-item" style="color:#A855F7;"><span style="font-size:16px;">🏆</span><span>Games</span></div>
+        `
+      },
+
+      // 11 Cyberpunk Neon
+      {
+        id: "cyberpunk-neon",
+        num: "11",
+        name: "Cyberpunk Neon",
+        nameZh: "赛博朋克霓虹",
+        category: "cyber",
+        categoryZh: "赛博、科幻与未来主义",
+        subtitle: "黑曜石暗夜底色、热烈洋红与赛博电青双色分裂发光，高能未来都市",
+        philosophy: "夜之城的数字反叛。在昏暗无光的夜幕中，高压电光与故障激光划破黑暗，释放强烈而狂躁的能量张力。",
+        bestFor: "Web3加密钱包、硬核电竞玩家俱乐部、赛博科幻RPG游戏伴侣。",
+        keywords: ["obsidian black #090A0F", "duotone neon (Hot Magenta + Cyber Cyan)", "text-shadow glow", "clipped polygon"],
+        prompt: "Create an intense Cyberpunk Neon mobile UI. Deep obsidian carbon background (#090A0F), dual-tone electric split lighting: Hot Magenta (#FF007F) and Cyber Cyan (#00F0FF). Glowing text shadows, neon contour borders, circuit HUD grid overlays, and angled clipped-corner polygon cards.",
+        colors: [
+          { name: "Cyber Cyan", hex: "#00F0FF" },
+          { name: "Hot Magenta", hex: "#FF007F" },
+          { name: "Obsidian Core", hex: "#090A0F" }
+        ],
+        cssSnippet: `.cyber-card {
+  background: rgba(21, 24, 33, 0.9);
+  border: 1px solid #00F0FF;
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.35);
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+}`,
+        phoneTheme: { bg: "#090A0F", text: "#00F0FF", statusBarText: "#00F0FF", fontFamily: "'JetBrains Mono', monospace" },
+        render: () => `
+          <div class="app-nav-row">
+            <span style="color:#00F0FF; font-weight:900; font-size:15px; text-shadow:0 0 8px #00F0FF;">[NET//PUNK]</span>
+            <span style="background:rgba(255,0,127,0.2); border:1px solid #FF007F; color:#FF007F; font-size:10px; font-weight:900; padding:2px 8px;">OVERCLOCK</span>
+          </div>
+          <div style="background:rgba(21,24,33,0.95); border:1px solid #00F0FF; box-shadow:0 0 16px rgba(0,240,255,0.3); padding:18px; clip-path:polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);">
+            <div style="font-size:10px; color:#FF007F; font-weight:800;">NEURAL SYNC CORE</div>
+            <div style="font-size:32px; font-weight:900; color:#FFF; text-shadow:0 0 10px #00F0FF; margin:6px 0;">98.4 %</div>
+            <p style="font-size:11px; color:#94A3B8; margin-bottom:14px;">Sub-dermal optic telemetry link stable.</p>
+            <button onclick="showToast('破冰协议注入中...')" style="width:100%; background:linear-gradient(90deg, #FF007F, #00F0FF); border:none; color:#000; font-weight:900; padding:10px; font-size:12px; cursor:pointer;">INJECT ICE BREAKER</button>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#00F0FF;"><span style="font-size:15px;">⚡</span><span>GRID</span></div>
+          <div class="tab-item" style="color:#64748B;"><span style="font-size:15px;">⎔</span><span>NODE</span></div>
+          <div class="tab-item" style="color:#64748B;"><span style="font-size:15px;">☣</span><span>WAR</span></div>
+        `
+      },
+
+      // 12 Bioluminescent Dark
+      {
+        id: "bioluminescent-dark",
+        num: "12",
+        name: "Bioluminescent Dark",
+        nameZh: "深海荧光科技",
+        category: "cyber",
+        categoryZh: "赛博、科幻与未来主义",
+        subtitle: "万米海沟深邃午夜蓝、磷光水母薄荷绿与紫晶荧光微光脉冲，神秘空灵",
+        philosophy: "自然生物电与高科技的隐秘融合。犹如在深海海底见证微光浮游生物的自发光律动，静谧、优雅且不可思议。",
+        bestFor: "AI深度思考过程可视化、智能睡眠与梦境追踪、观星与太空天文探索。",
+        keywords: ["abyssal navy #030712", "phosphorescent teal #00F5D4", "breathing pulse", "ethereal dark"],
+        prompt: "Design an ethereal Bioluminescent Dark mobile interface. Abyssal midnight navy background (#030712, #071322), glowing phosphorescent accents in marine teal (#00F5D4) and deep bio-violet (#7928CA). Soft radial gradient halos that mimic deep-sea organism breathing pulses, subtle wave telemetry lines, and floating luminescent cards.",
+        colors: [
+          { name: "Bio Teal", hex: "#00F5D4" },
+          { name: "Abyssal Navy", hex: "#030712" },
+          { name: "Bio Violet", hex: "#9D4EDD" }
+        ],
+        cssSnippet: `.bio-card {
+  background: rgba(11, 29, 51, 0.65);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 245, 212, 0.25);
+  box-shadow: 0 10px 30px -10px rgba(0, 245, 212, 0.2);
+  border-radius: 20px;
+}`,
+        phoneTheme: { bg: "#030712", text: "#E2E8F0", statusBarText: "#00F5D4", fontFamily: "'Inter', sans-serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <h5 style="font-weight:700; font-size:15px; color:#00F5D4;">Abyssal Pulse</h5>
+            <span style="font-size:11px; color:#9D4EDD;">Depth: 4,200m</span>
+          </div>
+          <div style="background:rgba(11,29,51,0.7); backdrop-filter:blur(16px); border:1px solid rgba(0,245,212,0.3); box-shadow:0 10px 30px -10px rgba(0,245,212,0.25); border-radius:22px; padding:22px; text-align:center;">
+            <div style="width:60px; height:60px; border-radius:50%; background:radial-gradient(circle, #00F5D4 0%, transparent 70%); margin:0 auto 12px auto;"></div>
+            <h3 style="font-size:20px; font-weight:800; color:#FFF;">Bio-Synapse Active</h3>
+            <p style="font-size:12px; color:#74C69D; margin-top:4px;">Phosphor emission amplitude nominal.</p>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#00F5D4;"><span style="font-size:15px;">◉</span><span>Depth</span></div>
+          <div class="tab-item" style="color:#64748B;"><span style="font-size:15px;">〰</span><span>Waves</span></div>
+          <div class="tab-item" style="color:#64748B;"><span style="font-size:15px;">✦</span><span>Organism</span></div>
+        `
+      },
+
+      // 13 Y2K Futuristic
+      {
+        id: "y2k-cyber",
+        num: "13",
+        name: "Y2K Futuristic Digital",
+        nameZh: "千禧Y2K数码复古",
+        category: "cyber",
+        categoryZh: "赛博、科幻与未来主义",
+        subtitle: "金属电镀渐变、星芒符号 ✦ ✧ 与千禧粉蓝全息彩虹光泽，复古未来狂欢",
+        philosophy: "千禧年对未来的浪漫狂想。金属外壳、果冻塑料质感与数码星芒交织，重温人类对数字化浪潮最初的纯真憧憬。",
+        bestFor: "潮玩盲盒抽奖、千禧复古滤镜相机、青年亚文化潮流音乐播放器。",
+        keywords: ["chrome metallic gradient", "starburst icons (✦, ✧)", "bubblegum pink #FF70A6", "ice blue #70D6FF"],
+        prompt: "Create a Y2K Futuristic Aesthetic mobile UI. Chrome liquid metallic gradients, sparkling four-point starbursts (✦, ✧), holographic iridescent borders, and bubblegum pop accents (electric pink #FF70A6, candy sky blue #70D6FF, lime fizz #E9FF70). Glossy reflective pill buttons and nostalgic millennium digital badges.",
+        colors: [
+          { name: "Y2K Pink", hex: "#FF70A6" },
+          { name: "Ice Blue", hex: "#70D6FF" },
+          { name: "Chrome Metallic", hex: "#E0E5EC" }
+        ],
+        cssSnippet: `.y2k-chrome-card {
+  background: linear-gradient(135deg, #F0F4F8 0%, #D9E2EC 50%, #BCCCDC 100%);
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 8px 24px rgba(112, 214, 255, 0.35);
+  border-radius: 24px;
+}`,
+        phoneTheme: { bg: "#130826", text: "#FFFFFF", statusBarText: "#70D6FF", fontFamily: "'Inter', sans-serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <h5 style="font-weight:900; font-size:16px; color:#FF70A6;">✦ CYBER2000 ✦</h5>
+            <span style="background:linear-gradient(90deg, #FF70A6, #70D6FF); color:#FFF; font-weight:800; font-size:10px; padding:2px 8px; border-radius:9999px;">HOLOGRAM</span>
+          </div>
+          <div style="background:linear-gradient(135deg, #E2E8F0 0%, #CBD5E1 100%); border:2px solid #FFFFFF; border-radius:24px; padding:20px; box-shadow:0 8px 24px rgba(112,214,255,0.4); color:#1A0933;">
+            <span style="font-size:11px; font-weight:900; color:#FF70A6;">✦ RARE GACHA DROP</span>
+            <h3 style="font-size:22px; font-weight:900; margin:4px 0;">Chromium Angel CD</h3>
+            <p style="font-size:12px; font-weight:600; margin-bottom:14px;">Special iridescent holographic vinyl sleeve.</p>
+            <button onclick="showToast('✦ 星芒盲盒已开启！')" style="width:100%; background:linear-gradient(90deg, #FF70A6, #70D6FF); color:#FFF; border:none; padding:12px; border-radius:9999px; font-weight:900; font-size:12px; cursor:pointer;">PULL GACHA ✦</button>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#FF70A6;"><span style="font-size:15px;">✦</span><span>Stars</span></div>
+          <div class="tab-item" style="color:#70D6FF;"><span style="font-size:15px;">💿</span><span>Player</span></div>
+          <div class="tab-item" style="color:#70D6FF;"><span style="font-size:15px;">✧</span><span>Stickers</span></div>
+        `
+      },
+
+      // 14 Solarpunk Eco
+      {
+        id: "solarpunk-eco",
+        num: "14",
+        name: "Solarpunk / Eco-Futurism",
+        nameZh: "太阳能朋克 / 生态未来",
+        category: "cyber",
+        categoryZh: "赛博、科幻与未来主义",
+        subtitle: "温润森林墨绿、太阳能琥珀金与叶脉仿生玻璃，科技与自然共生",
+        philosophy: "乐观主义的未来愿景。拒绝赛博朋克的末日废土，拥抱洁净太阳能、仿生有机形态与森林共融的生机勃勃之美。",
+        bestFor: "智慧绿色出行、碳足迹管理追踪、有机农场遥控、清洁能源电桩。",
+        keywords: ["forest green #1B4332", "solar gold #FFB703", "frosted botanical glass", "clean sustainable telemetry"],
+        prompt: "Design a Solarpunk Eco-Futuristic mobile UI. Lush deep forest green (#1B4332) blended with warm solar gold (#FFB703) and refreshing sage (#74C69D). Frosted organic glass cards with botanical leaf-curve corners, clean circular solar telemetry energy gauges, and clean optimistic environmental data charts.",
+        colors: [
+          { name: "Forest Canopy", hex: "#1B4332" },
+          { name: "Solar Amber", hex: "#FFB703" },
+          { name: "Sage Leaf", hex: "#74C69D" }
+        ],
+        cssSnippet: `.solarpunk-card {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(116, 198, 157, 0.4);
+  box-shadow: 0 10px 25px rgba(27, 67, 50, 0.08);
+  border-radius: 22px 6px 22px 6px;
+}`,
+        phoneTheme: { bg: "#F2EFE9", text: "#1B4332", statusBarText: "#1B4332", fontFamily: "'Inter', sans-serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <h5 style="font-weight:800; font-size:15px; color:#1B4332;">Eco Grid Biosphere</h5>
+            <span style="font-size:11px; color:#FFB703; font-weight:700;">☀ +4.8 kW</span>
+          </div>
+          <div style="background:rgba(255,255,255,0.9); border:1px solid rgba(116,198,157,0.4); border-radius:22px 6px 22px 6px; padding:20px; box-shadow:0 10px 25px rgba(27,67,50,0.08);">
+            <div style="font-size:11px; font-weight:700; color:#74C69D;">ROOFTOP PHOTOVOLTAIC</div>
+            <div style="font-size:32px; font-weight:800; color:#1B4332; margin:6px 0;">94.2 <span style="font-size:16px;">kWh</span></div>
+            <p style="font-size:12px; color:#52796F; margin-bottom:14px;">100% clean self-sufficiency achieved today.</p>
+            <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; color:#1B4332;">
+              <span>CO₂ Offset: 42 kg</span><span>Battery: 88%</span>
+            </div>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#1B4332;"><span style="font-size:16px;">🌱</span><span>Solar</span></div>
+          <div class="tab-item" style="color:#52796F;"><span style="font-size:16px;">⚡</span><span>Battery</span></div>
+          <div class="tab-item" style="color:#52796F;"><span style="font-size:16px;">🌳</span><span>Forest</span></div>
+        `
+      },
+
+      // 15 Holo-HUD Military
+      {
+        id: "tactical-hud",
+        num: "15",
+        name: "Holo-HUD Military Matrix",
+        nameZh: "战术HUD全息矩阵",
+        category: "cyber",
+        categoryZh: "赛博、科幻与未来主义",
+        subtitle: "战术六角网格、夜视仪磷光绿/荧光橙与斜角切角多边形，高精度仪器感",
+        philosophy: "极限任务下的终极精准。摒弃多余的人性温情，将所有数据转换为如同战斗机平视显示器般的坚固战术坐标。",
+        bestFor: "户外极限探险越野、航模无人机地面站操控、极客服务器终端监控。",
+        keywords: ["tactical hex grid", "telemetry crosshairs", "phosphor green #39FF14", "tactical amber #FFB000", "clipped polygon"],
+        prompt: "Create a tactical military Holo-HUD mobile UI. Dark olive-black background (#0C100D), high-visibility phosphor night-vision green (#39FF14) and tactical amber (#FFB000). Telemetry crosshair marks, coordinate coordinates, hexagonal battery gauges, angled clipped polygon borders, and dense monospace readouts.",
+        colors: [
+          { name: "Phosphor Green", hex: "#39FF14" },
+          { name: "Tactical Amber", hex: "#FFB000" },
+          { name: "Bunker Black", hex: "#0C100D" }
+        ],
+        cssSnippet: `.hud-frame {
+  background: rgba(22, 32, 25, 0.85);
+  border: 1px solid #39FF14;
+  box-shadow: 0 0 10px rgba(57, 255, 20, 0.25);
+}`,
+        phoneTheme: { bg: "#0C100D", text: "#39FF14", statusBarText: "#39FF14", fontFamily: "'JetBrains Mono', monospace" },
+        render: () => `
+          <div class="app-nav-row">
+            <span style="font-weight:800; font-size:13px;">[UAV//OPERATOR]</span>
+            <span style="color:#FFB000; font-size:11px;">GPS: 34.0522°N</span>
+          </div>
+          <div style="background:rgba(22,32,25,0.9); border:1px solid #39FF14; box-shadow:0 0 12px rgba(57,255,20,0.25); padding:16px;">
+            <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom:8px;">
+              <span>TARGET: DRONE-04</span><span>ALTITUDE: 420M</span>
+            </div>
+            <div style="height:60px; border:1px dashed #39FF14; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800;">
+              ✛ LOCK ACQUIRED ✛
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:10px; margin-top:8px;">
+              <span>BATTERY: 84%</span><span>SIGNAL: -62dBm</span>
+            </div>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#39FF14;"><span style="font-size:15px;">✛</span><span>RADAR</span></div>
+          <div class="tab-item" style="color:#1D4E28;"><span style="font-size:15px;">⎔</span><span>DRONE</span></div>
+          <div class="tab-item" style="color:#1D4E28;"><span style="font-size:15px;">⎇</span><span>LOGS</span></div>
+        `
+      },
+
+      // 16 Memphis Pop
+      {
+        id: "memphis-pop",
+        num: "16",
+        name: "Memphis Pop Vibrant",
+        nameZh: "孟菲斯波普潮流",
+        category: "pop",
+        categoryZh: "潮流与趣味",
+        subtitle: "趣味几何乱序散射（波浪纹、水磨石点）、倾斜卡片与高饱和撞色",
+        philosophy: "向平庸的条条框框宣战。80年代孟菲斯运动的当代数字复兴，用失控的撞色与调皮的倾角引爆多巴胺激素。",
+        bestFor: "青年潮流文创集市、周末派对聚会组局、趣味闯关背单词应用。",
+        keywords: ["playful geometric patterns", "zigzags and dots", "tilted cards -1deg", "dopamine energy"],
+        prompt: "Design a high-energy Memphis Pop mobile UI. Cheerful geometric scatters (squiggly waves, black terrazzo polka dots, triangles), dynamic slight tilt on cards (transform: rotate(-1.5deg)), clashing dopamine colors (coral red #FF5E7E, electric cobalt #3B82F6, bright sun #FFD166). High fun, high playfulness.",
+        colors: [
+          { name: "Coral Punch", hex: "#FF5E7E" },
+          { name: "Sunbeam Yellow", hex: "#FFD166" },
+          { name: "Electric Blue", hex: "#3B82F6" }
+        ],
+        cssSnippet: `.memphis-card {
+  background: #FFFFFF;
+  border: 2.5px solid #1D2026;
+  box-shadow: 5px 5px 0px #1D2026;
+  transform: rotate(-1deg);
+}`,
+        phoneTheme: { bg: "#FFF9F2", text: "#1D2026", statusBarText: "#1D2026", fontFamily: "'Inter', sans-serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <h5 style="font-weight:900; font-size:16px;">POP PARTY 🎪</h5>
+            <span style="background:#FFD166; border:2px solid #000; padding:2px 8px; font-weight:800; font-size:11px;">RSVP (8)</span>
+          </div>
+          <div style="background:#FFFFFF; border:2.5px solid #1D2026; border-radius:18px; box-shadow:5px 5px 0px #1D2026; transform:rotate(-1.5deg); padding:18px;">
+            <span style="background:#FF5E7E; color:#FFF; font-weight:800; font-size:10px; padding:2px 6px; border:1.5px solid #000;">THIS SATURDAY</span>
+            <h3 style="font-size:22px; font-weight:900; margin:6px 0;">Neon Roller Disco</h3>
+            <p style="font-size:12px; font-weight:600; margin-bottom:12px;">Retro skates, synthwave beats & bubble tea.</p>
+            <button onclick="showToast('已加入派对队伍！🎉')" style="background:#3B82F6; color:#FFF; border:2px solid #000; box-shadow:3px 3px 0 #000; padding:8px 16px; font-weight:800; font-size:12px; cursor:pointer;">JOIN VIBE ➔</button>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#FF5E7E;"><span style="font-size:16px;">★</span><span>Party</span></div>
+          <div class="tab-item" style="color:#000;"><span style="font-size:16px;">⚡</span><span>Map</span></div>
+          <div class="tab-item" style="color:#000;"><span style="font-size:16px;">👤</span><span>Squad</span></div>
+        `
+      },
+
+      // 17 Dopamine Candy
+      {
+        id: "dopamine-candy",
+        num: "17",
+        name: "Dopamine Pastel Candy",
+        nameZh: "多巴胺马卡龙软糖",
+        category: "pop",
+        categoryZh: "潮流与趣味",
+        subtitle: "草莓奶昔粉、牛油果浅绿与蓬松软萌胶囊圆角，多巴胺治愈系",
+        philosophy: "拒绝冷漠与疏离。像马卡龙与软糖般香甜柔和的色调，带来如饮温甜奶茶般的愉悦与被抚慰感。",
+        bestFor: "萌宠成长日常记录、女性经期健康管理、日常治愈小确幸打卡、烘焙食谱分享。",
+        keywords: ["strawberry milk #FF8FAB", "pistachio green #B7E4C7", "butter yellow #FFE382", "pillowy cards"],
+        prompt: "Create a sweet Dopamine Pastel Candy mobile UI. Delightful soft candy palette: strawberry milk pink (#FF8FAB), soft lilac (#E0AAFF), pistachio green (#B7E4C7), and butter yellow (#FFE382). Puffy squishy cards with extra large pill shapes, rounded floating tabs, and juicy high-spring tactile button feedback.",
+        colors: [
+          { name: "Strawberry Milk", hex: "#FF8FAB" },
+          { name: "Soft Lilac", hex: "#E0AAFF" },
+          { name: "Butter Cream", hex: "#FFE382" }
+        ],
+        cssSnippet: `.candy-card {
+  background: #FFFFFF;
+  border-radius: 26px;
+  box-shadow: 0 12px 24px -4px rgba(255, 143, 171, 0.22);
+  border: 2px solid #FFE5EC;
+}`,
+        phoneTheme: { bg: "#FFF5F7", text: "#702459", statusBarText: "#702459", fontFamily: "'Inter', sans-serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <h5 style="font-weight:800; font-size:16px; color:#702459;">Berry Smoothie Diary 🍓</h5>
+            <div style="width:32px; height:32px; border-radius:50%; background:#FFE382; display:flex; align-items:center; justify-content:center;">✨</div>
+          </div>
+          <div style="background:#FFFFFF; border-radius:26px; box-shadow:0 12px 24px -4px rgba(255,143,171,0.25); border:2px solid #FFE5EC; padding:20px;">
+            <span style="font-size:11px; font-weight:700; color:#FF8FAB;">DAILY SWEETNESS</span>
+            <h3 style="font-size:20px; font-weight:800; color:#702459; margin:4px 0;">Strawberries & Oats</h3>
+            <p style="font-size:12px; color:#9D4EDD; margin-bottom:14px;">Today's mood is 100% happy sugar!</p>
+            <div style="display:flex; gap:8px;">
+              <button onclick="showToast('打卡成功！🍓')" style="flex:1; background:#FF8FAB; color:#FFF; border:none; padding:10px; border-radius:9999px; font-weight:800; font-size:12px; cursor:pointer;">STAMP +1</button>
+            </div>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#FF8FAB;"><span style="font-size:16px;">🍓</span><span>Mood</span></div>
+          <div class="tab-item" style="color:#C084FC;"><span style="font-size:16px;">✨</span><span>Habits</span></div>
+          <div class="tab-item" style="color:#C084FC;"><span style="font-size:16px;">🧁</span><span>Recipes</span></div>
+        `
+      },
+
+      // 18 Acid Graphic
+      {
+        id: "acid-graphic",
+        num: "18",
+        name: "Acid Graphic / Anti-Design",
+        nameZh: "酸性平面反设计",
+        category: "pop",
+        categoryZh: "潮流与趣味",
+        subtitle: "液态水银扭曲、剧毒荧光绿撞酸性深紫、反网格贴纸标签，先锋亚文化",
+        philosophy: "反叛规训的视觉挑衅。故意打破排版网格，拥抱重金属熔融流体与刺目荧光，释放原始的地牢派对能量。",
+        bestFor: "地下摇滚/电子音乐演出票务、街头滑板社群、先锋艺术展演。",
+        keywords: ["toxic lime #BFFF00", "acid violet #240046", "anti-grid stickers", "warped typography"],
+        prompt: "Design an Acid Graphic / Anti-Design mobile UI. Harsh clashing contrast: Toxic Lime (#BFFF00), Acid Violet (#240046), and Liquid Silver chrome. Distorted sticker-like label tags, intentional defiance of traditional grid margins, warped typography styling, and industrial barcode raw aesthetic.",
+        colors: [
+          { name: "Toxic Lime", hex: "#BFFF00" },
+          { name: "Acid Violet", hex: "#240046" },
+          { name: "Liquid Chrome", hex: "#D8D8D8" }
+        ],
+        cssSnippet: `.acid-sticker {
+  background: #BFFF00;
+  color: #0D0C1D;
+  font-weight: 900;
+  transform: rotate(3deg);
+  border: 2px solid #000;
+}`,
+        phoneTheme: { bg: "#0D0C1D", text: "#BFFF00", statusBarText: "#BFFF00", fontFamily: "'JetBrains Mono', monospace" },
+        render: () => `
+          <div class="app-nav-row">
+            <span style="font-weight:900; font-size:16px; background:#BFFF00; color:#000; padding:2px 8px; transform:rotate(-2deg);">//RAVE_ZINE</span>
+            <span style="color:#FFF; font-size:11px;">BERLIN 04:00</span>
+          </div>
+          <div style="background:#240046; border:2px solid #BFFF00; padding:18px; margin-top:8px;">
+            <div style="background:#BFFF00; color:#000; font-weight:900; font-size:11px; display:inline-block; padding:2px 6px; transform:rotate(2deg); margin-bottom:8px;">BARCODE #98102</div>
+            <h3 style="font-size:24px; font-weight:900; color:#FFF; line-height:1;">ACID BASS DISRUPTION</h3>
+            <p style="font-size:11px; color:#D8D8D8; margin:10px 0;">Underground shelter warehouse gig.</p>
+            <div style="font-family:monospace; font-size:9px; background:#000; padding:6px; color:#BFFF00; letter-spacing:2px;">|| | | |||| | ||| |||| | |</div>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#BFFF00;"><span style="font-size:16px;">☣</span><span>ZINE</span></div>
+          <div class="tab-item" style="color:#FFF;"><span style="font-size:16px;">✦</span><span>TICKETS</span></div>
+        `
+      },
+
+      // 19 Comic Ben-Day Dots
+      {
+        id: "manga-comic",
+        num: "19",
+        name: "Comic / Ben-Day Dots",
+        nameZh: "美漫/日漫波点线稿风",
+        category: "pop",
+        categoryZh: "潮流与趣味",
+        subtitle: "半色调本戴波点网屏、漫画手绘黑墨线稿、气泡对话框与动效拟声词",
+        philosophy: "把手机变成一页跳动的实体漫画书。利用网点纸与拟声词让每次触摸都仿佛触发了一记充满张力的分镜特写。",
+        bestFor: "漫画二次元阅读器、动漫同人交流社区、ACG集换式卡牌对决。",
+        keywords: ["Ben-Day dots", "inked outlines 2px black", "speech bubble", "action burst badges (POW!)"],
+        prompt: "Create a Comic Book / Manga Pop mobile UI. Ben-Day halftone screen dot backgrounds, bold hand-drawn inked outlines (border: 2.5px solid #000), dialogue speech-bubble cards with directional tails, dynamic comic action burst badges (✦ BOOM! / NEW!), and classic halftone print primary red, yellow, and black.",
+        colors: [
+          { name: "Comic Black", hex: "#111111" },
+          { name: "Action Red", hex: "#E63946" },
+          { name: "Halftone Yellow", hex: "#FFBE0B" }
+        ],
+        cssSnippet: `.comic-bubble {
+  background: #FFFFFF;
+  border: 3px solid #111111;
+  border-radius: 18px;
+  box-shadow: 4px 4px 0px #111111;
+}`,
+        phoneTheme: { bg: "#FDFBF7", text: "#111111", statusBarText: "#111111", fontFamily: "'Inter', sans-serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <h5 style="font-weight:900; font-size:16px;">ACTION MANGA 💥</h5>
+            <span style="background:#E63946; color:#FFF; font-weight:900; font-size:11px; padding:2px 8px; border:2px solid #000;">POW!</span>
+          </div>
+          <div style="background:#FFFFFF; border:3px solid #111; border-radius:18px; box-shadow:4px 4px 0 #111; padding:18px; position:relative;">
+            <span style="background:#FFBE0B; font-weight:900; font-size:10px; padding:2px 6px; border:1.5px solid #000;">CHAPTER 42</span>
+            <h3 style="font-size:22px; font-weight:900; margin:6px 0;">"I Won't Give Up!"</h3>
+            <p style="font-size:12px; font-weight:700; margin-bottom:12px;">The hero unleashes the ultimate lightning spiral strike!</p>
+            <button onclick="showToast('💥 必杀技已发动！')" style="background:#E63946; color:#FFF; border:2.5px solid #000; box-shadow:3px 3px 0 #000; padding:8px 16px; font-weight:900; font-size:12px; cursor:pointer;">READ NOW ➔</button>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#000;"><span style="font-size:16px;">📖</span><span>Read</span></div>
+          <div class="tab-item" style="color:#000;"><span style="font-size:16px;">💥</span><span>Feed</span></div>
+        `
+      },
+
+      // 20 Retro 8-Bit Pixel
+      {
+        id: "retro-pixel-8bit",
+        num: "20",
+        name: "Retro 8-Bit Pixel Art",
+        nameZh: "复古8比特像素工坊",
+        category: "pop",
+        categoryZh: "潮流与趣味",
+        subtitle: "阶梯式像素边缘、街机经典 16 色调色板与方块血量条，情怀拉满",
+        philosophy: "受限硬件时代的无限诗意。低分辨率不是缺陷，而是一种将现实世界精炼为纯粹色块方阵的独特数字雕塑。",
+        bestFor: "复古游戏伴侣攻略、怀旧像素风记账、极简复读机学习工具。",
+        keywords: ["pixel font", "stepped borders", "NES 16-color", "blocky health bar", "retro arcade"],
+        prompt: "Design a Retro 8-Bit Pixel Art mobile UI. Pixel font (Press Start 2P / Silkscreen), stepped stair-step pixel corners, authentic NES/GameBoy nostalgic color palette (Arcade Emerald #10B981, CRT Dark Green #064E3B, Amber Coin #F59E0B). Blocky pixel progress bars and chunky retro quest badges.",
+        colors: [
+          { name: "GameBoy Green", hex: "#8BAC0F" },
+          { name: "Pixel Dark", hex: "#0F380F" },
+          { name: "Coin Gold", hex: "#F59E0B" }
+        ],
+        cssSnippet: `.pixel-box {
+  background: #8BAC0F;
+  border: 4px solid #0F380F;
+  box-shadow: 4px 4px 0px #0F380F;
+  font-family: 'Press Start 2P', monospace;
+}`,
+        phoneTheme: { bg: "#9BBC0F", text: "#0F380F", statusBarText: "#0F380F", fontFamily: "'Press Start 2P', monospace" },
+        render: () => `
+          <div class="app-nav-row" style="font-family:'Press Start 2P'; font-size:10px;">
+            <span>HERO LV.9</span>
+            <span style="color:#0F380F;">COIN: 420</span>
+          </div>
+          <div style="background:#8BAC0F; border:4px solid #0F380F; box-shadow:4px 4px 0 #0F380F; padding:14px; font-family:'Press Start 2P'; font-size:10px; line-height:1.6;">
+            <div>HP: [■■■■■□□]</div>
+            <div style="margin:10px 0; font-size:11px;">QUEST: DUNGEON 01</div>
+            <p style="font-size:9px; line-height:1.4; margin-bottom:12px;">Slay the swamp goblin to claim reward.</p>
+            <button onclick="showToast('⚔️ 攻击指令已发出！')" style="background:#0F380F; color:#8BAC0F; border:none; padding:8px 12px; font-family:'Press Start 2P'; font-size:9px; cursor:pointer;">ATTACK ⚔</button>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#0F380F; font-family:'Press Start 2P'; font-size:9px;"><span>QUEST</span></div>
+          <div class="tab-item" style="color:#306230; font-family:'Press Start 2P'; font-size:9px;"><span>ITEMS</span></div>
+        `
+      },
+
+      // 21 Editorial Magazine
+      {
+        id: "editorial-magazine",
+        num: "21",
+        name: "Editorial Magazine / New Yorker",
+        nameZh: "社论杂志出版物",
+        category: "editorial",
+        categoryZh: "人文社科与东方意境",
+        subtitle: "羊皮纸温润质感、经典衬线正文字阶、双发丝分割线与首字下沉",
+        philosophy: "抵抗快餐碎片的深度阅读殿堂。唤醒百年来百年纸媒排版的庄严感与文字韵律，营造纯粹的精神避风港。",
+        bestFor: "深度长文阅读专栏、文学小说精读、智库学术论文评析。",
+        keywords: ["classic editorial serif", "parchment #FAF7F2", "hairline rules", "drop caps", "pull-quotes"],
+        prompt: "Create an intellectual Editorial Magazine mobile UI inspired by The New Yorker and Kinfolk. Warm sepia parchment background (#FAF7F2), rich ink typography (Playfair / Noto Serif SC), delicate double hairline dividers, elegant drop caps for article excerpts, and quotation card callouts with generous typographic air.",
+        colors: [
+          { name: "Parchment Cream", hex: "#FAF7F2" },
+          { name: "Printer Ink", hex: "#1C1917" },
+          { name: "Vintage Amber", hex: "#B45309" }
+        ],
+        cssSnippet: `.editorial-card {
+  background: #FAF7F2;
+  border-top: 2px solid #1C1917;
+  border-bottom: 1px solid #E7E5E4;
+  padding: 20px 0;
+}`,
+        phoneTheme: { bg: "#FAF7F2", text: "#1C1917", statusBarText: "#1C1917", fontFamily: "'Playfair Display', serif" },
+        render: () => `
+          <div class="app-nav-row" style="border-bottom:1px solid #E7E5E4; padding-bottom:8px;">
+            <h5 style="font-size:16px; font-style:italic;">The Literary Post</h5>
+            <span style="font-size:11px; font-family:'Inter'; color:#666;">VOL. 88</span>
+          </div>
+          <div style="padding:14px 0;">
+            <span style="font-family:'Inter'; font-size:10px; letter-spacing:0.15em; color:#B45309; text-transform:uppercase;">Essay & Critique</span>
+            <h3 style="font-size:24px; font-weight:800; line-height:1.2; margin:6px 0 10px 0;">On the Persistence of Analog Solitude</h3>
+            <p style="font-family:'Noto Serif SC'; font-size:13px; line-height:1.7; color:#333;">
+              <span style="float:left; font-size:42px; line-height:0.8; padding-right:8px; font-weight:800;">T</span>here is a quiet dignity in objects that do not notify us. In the hum of the old radio, we discover an unhurried cadence of time.
+            </p>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#1C1917;"><span style="font-size:14px;">Ⅰ</span><span>Read</span></div>
+          <div class="tab-item" style="color:#888;"><span style="font-size:14px;">Ⅱ</span><span>Archive</span></div>
+        `
+      },
+
+      // 22 Warm Earthy Botanical
+      {
+        id: "warm-earthy",
+        num: "22",
+        name: "Warm Earthy Botanical",
+        nameZh: "大地自然手作风",
+        category: "editorial",
+        categoryZh: "人文社科与东方意境",
+        subtitle: "燕麦亚麻浅胚、温暖赤陶陶土红与桉树鼠尾草绿，手作质朴温度",
+        philosophy: "回归大地与泥土的呼吸。摒弃工业合成冰冷感，拥抱未漂白原色与矿物颜料，唤醒对自然造物的感知与敬畏。",
+        bestFor: "精油香薰SPA生活馆、自然有机护肤品、手工柴烧陶瓷工坊。",
+        keywords: ["raw linen oatmeal #F5EFEB", "terracotta #C86D51", "sage green #8A9A86", "artisanal rounded"],
+        prompt: "Design a Warm Earthy Botanical mobile UI. Natural oatmeal linen canvas (#F5EFEB), warm terracotta pottery accents (#C86D51), dusty eucalyptus sage (#8A9A86), and raw umber text. Artisanal soft rounded contours, gentle earthy pill tags, and an organic wellness ambiance.",
+        colors: [
+          { name: "Warm Terracotta", hex: "#C86D51" },
+          { name: "Eucalyptus Sage", hex: "#8A9A86" },
+          { name: "Raw Oatmeal", hex: "#F5EFEB" }
+        ],
+        cssSnippet: `.earthy-card {
+  background: #FAF6F0;
+  border: 1px solid #E3D5CA;
+  border-radius: 20px;
+}`,
+        phoneTheme: { bg: "#F5EFEB", text: "#634832", statusBarText: "#634832", fontFamily: "'Inter', sans-serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <h5 style="font-weight:700; font-size:15px; color:#634832;">Botanica Artisan 🌿</h5>
+            <span style="font-size:11px; color:#8A9A86;">Handmade</span>
+          </div>
+          <div style="background:#FAF6F0; border:1px solid #E3D5CA; border-radius:20px; padding:20px; box-shadow:0 4px 14px rgba(99,72,50,0.06);">
+            <span style="font-size:10px; font-weight:700; color:#8A9A86; text-transform:uppercase;">Ceramic Ritual</span>
+            <h3 style="font-size:20px; font-weight:800; color:#634832; margin:4px 0;">Wood-Fired Teapot</h3>
+            <p style="font-size:12px; color:#785A44; margin-bottom:14px;">Clay sourced from Tokoname hills.</p>
+            <button onclick="showToast('已加入手作心愿单 🏺')" style="background:#C86D51; color:#FFF; border:none; padding:10px 20px; border-radius:12px; font-weight:700; font-size:12px; cursor:pointer;">RESERVE POT ➔</button>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#C86D51;"><span style="font-size:16px;">🏺</span><span>Shop</span></div>
+          <div class="tab-item" style="color:#8A9A86;"><span style="font-size:16px;">🌿</span><span>Story</span></div>
+        `
+      },
+
+      // 23 Neo-Chinese Ink Zen
+      {
+        id: "neo-chinese-zen",
+        num: "23",
+        name: "Neo-Chinese Ink & Zen",
+        nameZh: "新中式水墨禅意",
+        category: "editorial",
+        categoryZh: "人文社科与东方意境",
+        subtitle: "宣纸肌理微底、水墨五色渐变晕染、朱砂印章红点缀与大写意留白",
+        philosophy: "计白当黑，气韵生动。不靠繁琐雕饰，以水墨之浓淡枯湿与一方朱红印章，在方寸屏幕间舒展东方大美诗意。",
+        bestFor: "茶道美学电商、国风传统诗词文创、中医药养生与禅修冥想。",
+        keywords: ["ink wash gradient", "cinnabar seal red #C23531", "celadon jade #7BA29A", "rice paper texture", "negative space 留白"],
+        prompt: "Create a Neo-Chinese Ink & Zen aesthetic mobile UI. Xuan rice paper canvas (#F7F4EC), graduated ink-wash blacks, cinnabar seal stamp red (#C23531), and celadon jade green (#7BA29A). Flowing negative space (留白), calligraphy serif fonts, subtle vertical text layout accents, and delicate circular ink mist backdrops.",
+        colors: [
+          { name: "Cinnabar Seal", hex: "#C23531" },
+          { name: "Celadon Jade", hex: "#7BA29A" },
+          { name: "Rice Paper", hex: "#F7F4EC" }
+        ],
+        cssSnippet: `.seal-stamp {
+  border: 2px solid #C23531;
+  color: #C23531;
+  border-radius: 4px;
+  font-weight: 800;
+  display: inline-block;
+  padding: 2px 6px;
+}`,
+        phoneTheme: { bg: "#F7F4EC", text: "#2B2B2B", statusBarText: "#2B2B2B", fontFamily: "'Noto Serif SC', serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <h5 style="font-weight:700; font-size:16px; letter-spacing:0.1em;">栖云茶舍</h5>
+            <div class="seal-stamp" style="border:2px solid #C23531; color:#C23531; font-size:11px; padding:2px 6px; font-weight:800;">禪茶</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.75); border:1px solid #E8E2D5; border-radius:14px; padding:20px; position:relative;">
+            <span style="font-size:11px; color:#7BA29A; letter-spacing:0.1em;">今日茶事 · 谷雨龙井</span>
+            <h3 style="font-size:22px; font-weight:700; margin:6px 0; letter-spacing:0.05em;">静坐听雨，松风入鼎</h3>
+            <p style="font-size:12px; color:#666; line-height:1.6; margin-bottom:14px;">一盅春水煎新茗，得半日之闲，抵十年尘梦。</p>
+            <button onclick="showToast('🍵 禅茶计时已开启')" style="background:#2B2B2B; color:#F7F4EC; border:none; padding:10px 22px; border-radius:8px; font-size:12px; cursor:pointer;">开始静泡计时</button>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#C23531;"><span style="font-size:15px;">🍵</span><span>茶序</span></div>
+          <div class="tab-item" style="color:#777;"><span style="font-size:15px;">🎐</span><span>闻香</span></div>
+          <div class="tab-item" style="color:#777;"><span style="font-size:15px;">📜</span><span>茶志</span></div>
+        `
+      },
+
+      // 24 Japanese Wabi-Sabi
+      {
+        id: "japanese-wabi-sabi",
+        num: "24",
+        name: "Japanese Wabi-Sabi",
+        nameZh: "日式侘寂原木",
+        category: "editorial",
+        categoryZh: "人文社科与东方意境",
+        subtitle: "榻榻米草木浅灰褐、老白茶米色与未打磨陶器粗粝微纹，静谧低噪",
+        philosophy: "残缺之美，时间之痕。剥离所有的华丽与声光电，让目光落回未经过度修饰的质朴木石之间，找回内心的宁静。",
+        bestFor: "日式温泉极简预订、正念减压指南、无印系极简生活家品。",
+        keywords: ["tatami beige #EDE8DF", "raw ash wood #8C7E72", "quiet asymmetry", "tea ceremony calm"],
+        prompt: "Design a Japanese Wabi-Sabi minimalist mobile UI. Muted tatami straw beige (#EDE8DF), aged ash wood (#8C7E72), and weathered tea ceremony stone. Unadorned asymmetric layout, ultra-low visual noise, subtle organic textured borders, and peaceful breathing space.",
+        colors: [
+          { name: "Tatami Straw", hex: "#EDE8DF" },
+          { name: "Ash Timber", hex: "#8C7E72" },
+          { name: "Quiet Charcoal", hex: "#3A3532" }
+        ],
+        cssSnippet: `.wabi-card {
+  background: #E5DFC5;
+  border-radius: 14px;
+  border: 1px solid #D6CEBE;
+  padding: 18px;
+}`,
+        phoneTheme: { bg: "#EDE8DF", text: "#3A3532", statusBarText: "#3A3532", fontFamily: "'Noto Serif SC', serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <h5 style="font-size:14px; color:#3A3532; letter-spacing:0.1em;">箱根 · 强罗温泉</h5>
+            <span style="font-size:11px; color:#8C7E72;">雨音</span>
+          </div>
+          <div style="background:#E2DBD0; border-radius:16px; padding:20px; border:1px solid #D5CCC0;">
+            <div style="font-size:10px; letter-spacing:0.2em; color:#8C7E72;">WABI-SABI RETREAT</div>
+            <h3 style="font-size:20px; font-weight:700; margin:6px 0;">檜風呂と苔庭</h3>
+            <p style="font-size:12px; color:#59524C; line-height:1.6; margin-bottom:14px;">Aged hinoki cypress wood tub facing ancient moss garden.</p>
+            <div style="font-size:11px; color:#8C7E72;">Quiet Hours: 21:00 - 07:00</div>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#3A3532;"><span style="font-size:15px;">♨</span><span>宿</span></div>
+          <div class="tab-item" style="color:#8C7E72;"><span style="font-size:15px;">🍵</span><span>庭</span></div>
+        `
+      },
+
+      // 25 Retro Bauhaus
+      {
+        id: "bauhaus-geometry",
+        num: "25",
+        name: "Retro Bauhaus Geometry",
+        nameZh: "包豪斯几何构成",
+        category: "editorial",
+        categoryZh: "人文社科与东方意境",
+        subtitle: "包豪斯红黄蓝纯三原色、纯粹圆方三角几何拓扑与强烈结构张力",
+        philosophy: "艺术与技术的崭新统一。纯粹几何形体（圆形、方形、三角形）在原色撞击中构建具有强烈建筑逻辑的秩序美。",
+        bestFor: "设计专业教学互动课件、现代建筑巡礼指南、几何智力解谜游戏。",
+        keywords: ["primary triad (Bauhaus Red #D02027, Cobalt Blue #19478A, Yellow #F5B82E)", "pure geometric primitives"],
+        prompt: "Create a Bauhaus Geometry mobile UI. Strict adherence to primary color triad: Bauhaus Red (#D02027), Cobalt Blue (#19478A), and Cadmium Yellow (#F5B82E) against stark white and dark charcoal. Clean circles, triangles, and rectangular cards combined in asymmetrical constructivist layouts.",
+        colors: [
+          { name: "Bauhaus Red", hex: "#D02027" },
+          { name: "Cobalt Blue", hex: "#19478A" },
+          { name: "Cadmium Yellow", hex: "#F5B82E" }
+        ],
+        cssSnippet: `.bauhaus-block {
+  border: 2px solid #1A1A1A;
+  background: #FFFFFF;
+}`,
+        phoneTheme: { bg: "#F7F7F7", text: "#1A1A1A", statusBarText: "#1A1A1A", fontFamily: "'Inter', sans-serif" },
+        render: () => `
+          <div class="app-nav-row" style="border-bottom:3px solid #1A1A1A; padding-bottom:8px;">
+            <h5 style="font-weight:900; font-size:16px;">BAUHAUS 1919</h5>
+            <div style="width:20px; height:20px; border-radius:50%; background:#D02027;"></div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;">
+            <div style="background:#D02027; color:#FFF; padding:16px; border:2px solid #000;">
+              <div style="font-size:24px; font-weight:900;">FORM</div>
+            </div>
+            <div style="background:#19478A; color:#FFF; padding:16px; border:2px solid #000;">
+              <div style="font-size:24px; font-weight:900;">FUNCTION</div>
+            </div>
+          </div>
+          <div style="background:#F5B82E; border:2px solid #000; padding:16px; color:#000;">
+            <h4 style="font-weight:900; font-size:18px;">Wassily Chair N° B3</h4>
+            <p style="font-size:11px; font-weight:700;">Marcel Breuer, Tubular steel & canvas.</p>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#D02027;"><span style="font-size:16px;">●</span><span>Red</span></div>
+          <div class="tab-item" style="color:#19478A;"><span style="font-size:16px;">▲</span><span>Blue</span></div>
+          <div class="tab-item" style="color:#F5B82E;"><span style="font-size:16px;">■</span><span>Yellow</span></div>
+        `
+      },
+
+      // 26 Bento Grid Modular
+      {
+        id: "bento-grid",
+        num: "26",
+        name: "Bento Grid Modular",
+        nameZh: "Bento 便当盒模块流 (Apple Style)",
+        category: "functional",
+        categoryZh: "功能级业务专属体系",
+        subtitle: "非对称高密度跨栏多宫格、Squircle 圆角与卡片内置微交互组件",
+        philosophy: "把复杂的万千数据装进精致的日本便当盒。每一格都是一个微型自洽世界，结构清晰、极具模块化可拓展性。",
+        bestFor: "智能手机主屏小组件、SaaS产品功能特性展示、个人数字身份看板。",
+        keywords: ["asymmetrical modular grid", "multi-span cards", "squircle rounded-2xl", "micro-data widgets"],
+        prompt: "Design an Apple-inspired Bento Grid Modular mobile UI. High-density 2-column asymmetric grid cards (spanning 1x1, 2x1, 2x2). Squircle rounded-2xl corners, sleek graphite dark surfaces (#18181B) with fine subtle borders, self-contained micro-widgets (battery bar, audio waveform, quick toggles).",
+        colors: [
+          { name: "Bento Dark", hex: "#18181B" },
+          { name: "Bento Card", hex: "#27272A" },
+          { name: "Apple Blue", hex: "#0A84FF" }
+        ],
+        cssSnippet: `.bento-card {
+  background: #27272A;
+  border-radius: 20px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}`,
+        phoneTheme: { bg: "#121214", text: "#FAFAFA", statusBarText: "#FAFAFA", fontFamily: "'Inter', sans-serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <h5 style="font-weight:700; font-size:15px; color:#FFF;">Studio Hub 🍱</h5>
+            <span style="font-size:11px; color:#A1A1AA;">Synced</span>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div style="grid-column:span 2; background:#27272A; border-radius:20px; padding:16px; border:1px solid rgba(255,255,255,0.08);">
+              <span style="font-size:11px; color:#A1A1AA;">TOTAL REVENUE</span>
+              <div style="font-size:26px; font-weight:800; color:#FFF; margin:4px 0;">$84,290.00</div>
+              <div style="font-size:11px; color:#30D158; font-weight:600;">▲ +24.8% this quarter</div>
+            </div>
+            <div style="background:#27272A; border-radius:18px; padding:14px; border:1px solid rgba(255,255,255,0.08);">
+              <span style="font-size:11px; color:#A1A1AA;">STORAGE</span>
+              <div style="font-size:18px; font-weight:700; color:#FFF; margin:4px 0;">82%</div>
+              <div style="height:4px; background:#3F3F46; border-radius:2px;"><div style="width:82%; height:100%; background:#0A84FF;"></div></div>
+            </div>
+            <div style="background:#27272A; border-radius:18px; padding:14px; border:1px solid rgba(255,255,255,0.08);">
+              <span style="font-size:11px; color:#A1A1AA;">DEPLOY</span>
+              <div style="font-size:18px; font-weight:700; color:#30D158; margin:4px 0;">ONLINE</div>
+            </div>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#FFF;"><span style="font-size:15px;">⊞</span><span>Home</span></div>
+          <div class="tab-item" style="color:#71717A;"><span style="font-size:15px;">📊</span><span>Metrics</span></div>
+          <div class="tab-item" style="color:#71717A;"><span style="font-size:15px;">⚙</span><span>Config</span></div>
+        `
+      },
+
+      // 27 Bloomberg Terminal
+      {
+        id: "bloomberg-terminal",
+        num: "27",
+        name: "Bloomberg Terminal Finance",
+        nameZh: "彭博终端高频金融",
+        category: "functional",
+        categoryZh: "功能级业务专属体系",
+        subtitle: "纯黑画布底、高能见度荧光绿/紧急红涨跌色、等宽制表数字，零浪费排版",
+        philosophy: "秒级博弈的信息高压舱。不允许一丝一毫的留白浪费，所有像素都为了极速识别流动性与价格跳动而服务。",
+        bestFor: "加密货币合约交易所、外汇高频交易行情、量化对冲基金终端看板。",
+        keywords: ["pitch-black canvas #000000", "ticker green #00E676", "panic red #FF3B30", "monospace tabular figures"],
+        prompt: "Create a high-density Bloomberg Terminal / Web3 DEX trading mobile UI. Pitch black canvas (#000000), stark high-visibility phosphor green (#00E676) for gains and emergency crimson (#FF3B30) for losses. Monospace font with tabular numeric alignment, live candlestick sparkline bars, and dense compact orderbook tables.",
+        colors: [
+          { name: "Ticker Green", hex: "#00E676" },
+          { name: "Panic Red", hex: "#FF3B30" },
+          { name: "Terminal Black", hex: "#000000" }
+        ],
+        cssSnippet: `.terminal-card {
+  background: #0A0A0A;
+  border: 1px solid #222222;
+  font-family: 'JetBrains Mono', monospace;
+}`,
+        phoneTheme: { bg: "#000000", text: "#F5F5F5", statusBarText: "#00E676", fontFamily: "'JetBrains Mono', monospace" },
+        render: () => `
+          <div class="app-nav-row" style="border-bottom:1px solid #222; padding-bottom:6px;">
+            <span style="color:#FF9100; font-weight:800; font-size:13px;">BTC/USDT PERP</span>
+            <span style="color:#00E676; font-weight:800; font-size:13px;">$67,420.50</span>
+          </div>
+          <div style="background:#0D0D0D; border:1px solid #222; padding:12px; margin-top:8px;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:6px;">
+              <span>BID: 67,419.80</span><span style="color:#00E676;">+3.84% 24H</span>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:11px;">
+              <div style="color:#00E676;">B: 1.420 @ 67,419</div><div style="color:#FF3B30; text-align:right;">A: 0.890 @ 67,421</div>
+              <div style="color:#00E676;">B: 2.150 @ 67,418</div><div style="color:#FF3B30; text-align:right;">A: 1.640 @ 67,422</div>
+            </div>
+            <div style="display:flex; gap:6px; margin-top:10px;">
+              <button onclick="showToast('📈 买入开多成交')" style="flex:1; background:#00E676; color:#000; font-weight:900; padding:8px; border:none; cursor:pointer;">BUY / LONG</button>
+              <button onclick="showToast('📉 卖出开空成交')" style="flex:1; background:#FF3B30; color:#FFF; font-weight:900; padding:8px; border:none; cursor:pointer;">SELL / SHORT</button>
+            </div>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#00E676;"><span style="font-size:14px;">TRADE</span></div>
+          <div class="tab-item" style="color:#555;"><span style="font-size:14px;">BOOK</span></div>
+          <div class="tab-item" style="color:#555;"><span style="font-size:14px;">POS</span></div>
+        `
+      },
+
+      // 28 Aurora Fluid Mesh
+      {
+        id: "aurora-fluid",
+        num: "28",
+        name: "Aurora Fluid Mesh Gradient",
+        nameZh: "极光流体微光弥散",
+        category: "functional",
+        categoryZh: "功能级业务专属体系",
+        subtitle: "多重动态径向极光渐变、星云迷雾虚化与悬浮磨砂白卡片，如梦似幻",
+        philosophy: "流动与情绪共振。利用色彩温和无边界的流体渐变扩散，打破生硬的方框分割，营造梦幻而富有灵性的现代氛围。",
+        bestFor: "AI生成式大模型助手界面、情绪日记与心境反思、新潮冥想音频空间。",
+        keywords: ["ambient mesh gradients", "diffuse organic blobs", "floating translucent cards", "dreamlike"],
+        prompt: "Design an Aurora Fluid Mesh Gradient mobile UI. Ambient diffused organic background blobs in coral, lavender, sky blue and lime, floating translucent frosted cards (rgba(255,255,255,0.7) with blur(20px)), ethereal glow borders, and uplifting emotional typography.",
+        colors: [
+          { name: "Aurora Violet", hex: "#8B5CF6" },
+          { name: "Aurora Pink", hex: "#EC4899" },
+          { name: "Aurora Sky", hex: "#38BDF8" }
+        ],
+        cssSnippet: `.aurora-card {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 24px;
+}`,
+        phoneTheme: { bg: "radial-gradient(circle at 10% 20%, #EDE9FE 0%, #E0F2FE 50%, #FCE7F3 100%)", text: "#1E1B4B", statusBarText: "#1E1B4B", fontFamily: "'Inter', sans-serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <h5 style="font-weight:700; font-size:16px; color:#1E1B4B;">Aura GenAI ✨</h5>
+            <span style="font-size:11px; color:#8B5CF6; font-weight:600;">Ethereal</span>
+          </div>
+          <div style="background:rgba(255,255,255,0.75); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.85); border-radius:24px; padding:22px; box-shadow:0 12px 32px rgba(139,92,246,0.15);">
+            <span style="font-size:11px; font-weight:700; color:#EC4899;">INTUITIVE SYNTHESIS</span>
+            <h3 style="font-size:20px; font-weight:800; color:#1E1B4B; margin:6px 0;">"Compose an aurora poem"</h3>
+            <p style="font-size:12px; color:#4C1D95; line-height:1.5; margin-bottom:14px;">Where twilight meets the crystalline lake, emerald ribbons dance with stars.</p>
+            <button onclick="showToast('AI 生成完成 ✨')" style="background:linear-gradient(135deg, #8B5CF6, #EC4899); color:#FFF; border:none; padding:10px 20px; border-radius:9999px; font-weight:700; font-size:12px; cursor:pointer;">RE-GENERATE ✦</button>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#8B5CF6;"><span style="font-size:15px;">✦</span><span>Ask</span></div>
+          <div class="tab-item" style="color:#6B7280;"><span style="font-size:15px;">〰</span><span>Flow</span></div>
+        `
+      },
+
+      // 29 Dark Fantasy RPG
+      {
+        id: "dark-fantasy-rpg",
+        num: "29",
+        name: "Dark Fantasy RPG HUD",
+        nameZh: "暗黑魔幻RPG游戏界面",
+        category: "functional",
+        categoryZh: "功能级业务专属体系",
+        subtitle: "做旧古铜金属鎏金滚边、黑曜石底板、鲜红血球与幽蓝法力水晶槽",
+        philosophy: "踏入剑与魔法的冒险史诗。厚重的锻造青铜花纹与蕴含古老魔力的宝石辉光，瞬间唤醒勇者的探索渴望。",
+        bestFor: "魔幻卡牌手游伴侣、跑团 DND 角色卡管理、沉浸式互动剧本杀辅助。",
+        keywords: ["burnished bronze filigree", "blood ruby gems", "obsidian stone", "gothic serif numerals"],
+        prompt: "Create a Dark Fantasy RPG mobile HUD interface. Obsidian stone textured background, ornate burnished antique bronze gold borders (#D4AF37), deep crimson ruby red (#990000) health status meters, luminous sapphire blue (#1E40AF) mana indicators, and sculpted gothic serif numerals.",
+        colors: [
+          { name: "Burnished Gold", hex: "#D4AF37" },
+          { name: "Blood Ruby", hex: "#8B0000" },
+          { name: "Mana Sapphire", hex: "#1D4ED8" }
+        ],
+        cssSnippet: `.rpg-frame {
+  background: #15161A;
+  border: 2px solid #D4AF37;
+  box-shadow: inset 0 0 10px #000000;
+  border-radius: 8px;
+}`,
+        phoneTheme: { bg: "#0E0F12", text: "#D8C4A7", statusBarText: "#D4AF37", fontFamily: "'Cinzel', serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <h5 style="font-family:'Cinzel'; font-weight:800; font-size:16px; color:#D4AF37;">ELDEN KNIGHT</h5>
+            <span style="color:#D4AF37; font-size:12px;">LV. 85</span>
+          </div>
+          <div style="background:#15161A; border:2px solid #D4AF37; box-shadow:inset 0 0 10px #000; border-radius:8px; padding:16px;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
+              <span style="color:#DC2626;">HP 840 / 840</span>
+              <span style="color:#60A5FA;">MP 420 / 420</span>
+            </div>
+            <div style="height:8px; background:#450A0A; border-radius:4px; margin-bottom:12px; overflow:hidden;">
+              <div style="width:100%; height:100%; background:linear-gradient(90deg, #990000, #EF4444);"></div>
+            </div>
+            <div style="font-family:'Cinzel'; font-size:14px; font-weight:700; color:#D4AF37; margin-bottom:4px;">Dragon Slayer Blade</div>
+            <p style="font-size:11px; font-family:'Inter'; color:#999; margin-bottom:12px;">Physical Damage: 380 + Fire 120.</p>
+            <button onclick="showToast('⚔️ 战技【炽焰旋风】已施展！')" style="width:100%; background:#8B0000; border:1px solid #D4AF37; color:#D4AF37; font-family:'Cinzel'; font-weight:700; padding:10px; cursor:pointer;">CAST SKILL ⚔</button>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#D4AF37;"><span style="font-size:15px;">⚔</span><span>Blade</span></div>
+          <div class="tab-item" style="color:#777;"><span style="font-size:15px;">🛡</span><span>Armor</span></div>
+          <div class="tab-item" style="color:#777;"><span style="font-size:15px;">📜</span><span>Spells</span></div>
+        `
+      },
+
+      // 30 Medical Biotech
+      {
+        id: "medical-biotech",
+        num: "30",
+        name: "Medical Biotech Clean",
+        nameZh: "医疗生物高精透润",
+        category: "functional",
+        categoryZh: "功能级业务专属体系",
+        subtitle: "无菌冰晶蓝白、高精微遥测心电波形与权威安全视觉指引，守护与可信",
+        philosophy: "生命体征的精密守护。以绝对的清晰、无菌纯净的冰蓝底色和精确到微秒的心电遥测，传递最深层的专业安全感。",
+        bestFor: "连续血糖仪 (CGM) 监测、移动心电监护仪、三甲医院掌上医生挂号问诊。",
+        keywords: ["clinical cyan #0284C7", "sterile white", "ice blue tint #EBF5FB", "ECG telemetry waveform"],
+        prompt: "Design a Medical Biotech Clean mobile app UI. Sterile crisp white background (#FFFFFF), translucent ice-blue panels (#EBF5FB), reassuring clinical cyan (#0284C7) and vital alert amber (#F59E0B). Precision micro-telemetry data readouts (BPM, SpO2), smooth sinusoidal ECG heartbeat waveform, and clear clinical trust cues.",
+        colors: [
+          { name: "Clinical Cyan", hex: "#0284C7" },
+          { name: "Sterile White", hex: "#FFFFFF" },
+          { name: "Vital Alert", hex: "#F59E0B" }
+        ],
+        cssSnippet: `.medical-card {
+  background: #FFFFFF;
+  border: 1px solid #BAE6FD;
+  border-radius: 18px;
+  box-shadow: 0 4px 20px rgba(2, 132, 199, 0.06);
+}`,
+        phoneTheme: { bg: "#F0F9FF", text: "#0F172A", statusBarText: "#0284C7", fontFamily: "'Inter', sans-serif" },
+        render: () => `
+          <div class="app-nav-row">
+            <h5 style="font-weight:700; font-size:15px; color:#0284C7;">BioMonitor CGM 🩺</h5>
+            <span style="font-size:11px; color:#10B981; font-weight:700;">Sensor: Normal</span>
+          </div>
+          <div style="background:#FFFFFF; border:1px solid #BAE6FD; border-radius:18px; padding:20px; box-shadow:0 4px 20px rgba(2,132,199,0.06);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:11px; font-weight:700; color:#64748B;">BLOOD GLUCOSE</span>
+              <span style="font-size:11px; color:#0284C7; font-weight:700;">5.8 mmol/L</span>
+            </div>
+            <div style="font-size:36px; font-weight:800; color:#0F172A; margin:6px 0;">72 <span style="font-size:18px; color:#0284C7;">BPM</span></div>
+            <!-- ECG Wave Line SVG -->
+            <svg viewBox="0 0 200 40" style="width:100%; height:32px; stroke:#0284C7; fill:none; stroke-width:2;">
+              <path d="M0,20 L40,20 L50,5 L60,35 L70,10 L80,20 L120,20 L130,10 L140,30 L150,20 L200,20" />
+            </svg>
+            <div style="display:flex; justify-content:space-between; font-size:11px; margin-top:8px; color:#64748B;">
+              <span>SpO2: 99%</span><span>Blood Pressure: 118/76</span>
+            </div>
+          </div>
+        `,
+        tabs: `
+          <div class="tab-item" style="color:#0284C7;"><span style="font-size:15px;">🩺</span><span>Vitals</span></div>
+          <div class="tab-item" style="color:#94A3B8;"><span style="font-size:15px;">📊</span><span>Trends</span></div>
+          <div class="tab-item" style="color:#94A3B8;"><span style="font-size:15px;">👨‍⚕️</span><span>Doctor</span></div>
+        `
+      }
+    ];
+
+    /* Application Global State */
+    let currentStyleIndex = 0;
+    let currentCategory = "all";
+    let searchQuery = "";
+    let tourInterval = null;
+    let isSimulatorDark = false;
+    let currentPromptFormat = "natural";
+    let compareIndexA = 0;
+    let compareIndexB = 1;
+
+    /* DOM References */
+    const focusView = document.getElementById("focusView");
+    const compareView = document.getElementById("compareView");
+    const galleryView = document.getElementById("galleryView");
+    const cheatsheetView = document.getElementById("cheatsheetView");
+    const styleCardsGrid = document.getElementById("styleCardsGrid");
+    const filterStrip = document.getElementById("filterStrip");
+    const searchInput = document.getElementById("searchInput");
+    const tourBtn = document.getElementById("tourBtn");
+    const resultsCountText = document.getElementById("resultsCountText");
+
+    /* Phone Simulator DOM */
+    const phoneScreen = document.getElementById("phoneScreen");
+    const phoneStatusBar = document.getElementById("phoneStatusBar");
+    const screenContent = document.getElementById("screenContent");
+    const phoneTabBar = document.getElementById("phoneTabBar");
+    const simCurrentStyleLabel = document.getElementById("simCurrentStyleLabel");
+    const dynamicIsland = document.getElementById("dynamicIsland");
+    const islandLabel = document.getElementById("islandLabel");
+
+    /* Dossier DOM */
+    const dossierTitle = document.getElementById("dossierTitle");
+    const dossierSubtitle = document.getElementById("dossierSubtitle");
+    const dossierCategory = document.getElementById("dossierCategory");
+    const dossierPromptText = document.getElementById("dossierPromptText");
+    const dossierKeywords = document.getElementById("dossierKeywords");
+    const dossierPhilosophy = document.getElementById("dossierPhilosophy");
+    const dossierBestFor = document.getElementById("dossierBestFor");
+    const dossierTokens = document.getElementById("dossierTokens");
+    const dossierCssCode = document.getElementById("dossierCssCode");
+    const copyPromptBtn = document.getElementById("copyPromptBtn");
+    const copyCssBtn = document.getElementById("copyCssBtn");
+    const toastPopup = document.getElementById("toastPopup");
+    const toastMessage = document.getElementById("toastMessage");
+
+    /* Toast Helper */
+    function showToast(msg) {
+      toastMessage.textContent = msg;
+      toastPopup.classList.add("show");
+      setTimeout(() => { toastPopup.classList.remove("show"); }, 2400);
+    }
+
+    /* Clipboard Copy Helper */
+    async function copyToClipboard(text, successMsg = "已成功复制到剪贴板！") {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast(successMsg);
+      } catch (err) {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        showToast(successMsg);
+      }
+    }
+
+    /* Render Phone Mockup for Specific Style */
+    function renderPhoneScreen(style, targetScreen, targetStatus, targetContent, targetTab) {
+      targetScreen.style.background = style.phoneTheme.bg;
+      targetScreen.style.color = style.phoneTheme.text;
+      targetScreen.style.fontFamily = style.phoneTheme.fontFamily;
+      targetStatus.style.color = style.phoneTheme.statusBarText;
+
+      targetContent.innerHTML = style.render();
+      targetTab.innerHTML = style.tabs;
+    }
+
+    /* Update Dossier View with Formats */
+    function updateDossier(style) {
+      dossierTitle.innerHTML = `${style.name} (${style.nameZh}) <span style="font-size:15px; color:#818CF8;">#${style.num}</span>`;
+      dossierSubtitle.textContent = style.subtitle;
+      dossierCategory.textContent = style.categoryZh;
+      dossierPhilosophy.textContent = style.philosophy;
+      dossierBestFor.textContent = style.bestFor;
+      dossierCssCode.textContent = style.cssSnippet;
+
+      // Update prompt content based on active tab
+      updatePromptDisplay(style);
+
+      // Keywords
+      dossierKeywords.innerHTML = style.keywords.map(kw => `
+        <span class="keyword-tag" onclick="searchInput.value='${kw}'; searchInput.dispatchEvent(new Event('input'))">${kw}</span>
+      `).join('');
+
+      // Color Swatches
+      dossierTokens.innerHTML = style.colors.map(c => `
+        <div class="color-swatch-card" onclick="copyToClipboard('${c.hex}', '颜色代码 ${c.hex} 已复制！')">
+          <div class="swatch-color-box" style="background: ${c.hex};"></div>
+          <div class="swatch-meta">
+            <div class="swatch-name">${c.name}</div>
+            <div class="swatch-hex">${c.hex}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updatePromptDisplay(style) {
+      if (currentPromptFormat === "natural") {
+        dossierPromptText.textContent = style.prompt;
+      } else if (currentPromptFormat === "tailwind") {
+        dossierPromptText.textContent = style.tailwindConfig || `// Tailwind Preset for ${style.name}\n// Use Colors: ${style.colors.map(c=>c.hex).join(', ')}`;
+      } else {
+        dossierPromptText.textContent = style.cssSnippet;
+      }
+    }
+
+    /* Style Selection */
+    function selectStyle(index) {
+      currentStyleIndex = index;
+      const style = UI_STYLES[index];
+      simCurrentStyleLabel.textContent = `${style.name} (#${style.num})`;
+      islandLabel.textContent = style.name.split(' ')[0];
+
+      renderPhoneScreen(style, phoneScreen, phoneStatusBar, screenContent, phoneTabBar);
+      updateDossier(style);
+
+      document.querySelectorAll(".style-select-card").forEach((card, idx) => {
+        if (idx === index) {
+          card.classList.add("active");
+          card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+          card.classList.remove("active");
+        }
+      });
+    }
+
+    /* Render Cards Grid */
+    function renderStyleCards(styles) {
+      styleCardsGrid.innerHTML = "";
+      resultsCountText.textContent = `当前展示 ${styles.length} 套风格`;
+
+      styles.forEach((style) => {
+        const globalIdx = UI_STYLES.findIndex(s => s.id === style.id);
+        const card = document.createElement("div");
+        card.className = `style-select-card ${globalIdx === currentStyleIndex ? 'active' : ''}`;
+        card.onclick = () => selectStyle(globalIdx);
+
+        card.innerHTML = `
+          <div class="card-num">#${style.num} · ${style.categoryZh}</div>
+          <h4>${style.name}</h4>
+          <div class="card-zh">${style.nameZh}</div>
+          <div class="mini-palette">
+            ${style.colors.slice(0, 4).map(c => `
+              <div class="mini-palette-dot" style="background:${c.hex};" title="${c.name} (${c.hex})"></div>
+            `).join('')}
+          </div>
+          <div class="card-tags-row">
+            ${style.keywords.slice(0, 2).map(kw => `
+              <span class="card-micro-tag">${kw}</span>
+            `).join('')}
+          </div>
+        `;
+        styleCardsGrid.appendChild(card);
+      });
+    }
+
+    /* Render Gallery Grid */
+    function renderGalleryView() {
+      galleryView.innerHTML = UI_STYLES.map((style, idx) => `
+        <div class="gallery-item-card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <span style="font-size:11px; font-weight:800; color:#818CF8;">#${style.num}</span>
+              <h3 style="font-size:16px; font-weight:800;">${style.name}</h3>
+              <p style="font-size:12px; color:var(--text-secondary);">${style.nameZh}</p>
+            </div>
+            <button class="copy-action-btn" style="padding:4px 10px; font-size:11px;" onclick="copyToClipboard('${style.prompt}')">复制Prompt</button>
+          </div>
+          <div class="gallery-mini-phone-wrapper">
+            <div class="gallery-mini-screen" style="background:${style.phoneTheme.bg}; color:${style.phoneTheme.text}; font-family:${style.phoneTheme.fontFamily}; padding:14px;">
+              <div style="font-size:10px; font-weight:700; margin-bottom:8px; opacity:0.8;">9:41 · 5G</div>
+              ${style.render()}
+            </div>
+          </div>
+          <button style="background:none; border:none; color:#818CF8; font-size:12px; font-weight:700; cursor:pointer; text-align:left;" onclick="switchFocusAndSelect(${idx})">在真机模拟器中检阅 ➔</button>
+        </div>
+      `).join('');
+    }
+
+    function switchFocusAndSelect(idx) {
+      document.querySelector('.view-btn[data-view="focus"]').click();
+      selectStyle(idx);
+    }
+
+    /* Render Cheat Sheet Table */
+    function renderCheatsheetView() {
+      const tbody = document.getElementById("cheatsheetTableBody");
+      tbody.innerHTML = UI_STYLES.map(style => `
+        <tr>
+          <td>
+            <div style="font-weight:700;">#${style.num} ${style.name}</div>
+            <div style="font-size:11px; color:var(--text-secondary);">${style.nameZh}</div>
+          </td>
+          <td><span style="font-size:12px; color:var(--text-muted);">${style.categoryZh}</span></td>
+          <td><div style="max-width:320px; font-size:12px; line-height:1.4;">${style.prompt}</div></td>
+          <td>
+            <div style="display:flex; gap:4px; flex-wrap:wrap; max-width:140px;">
+              ${style.colors.map(c => `
+                <span style="display:inline-block; width:18px; height:18px; border-radius:4px; background:${c.hex}; border:1px solid rgba(255,255,255,0.2);" title="${c.name}: ${c.hex}"></span>
+              `).join('')}
+            </div>
+          </td>
+          <td><code style="font-size:11px; color:#38BDF8; background:#000; padding:4px 8px; border-radius:4px; display:block; max-width:240px; overflow-x:auto;">${style.cssSnippet.split('\n')[1] || style.cssSnippet}</code></td>
+          <td><button class="copy-action-btn" style="padding:4px 10px; font-size:11px;" onclick="copyToClipboard('${style.prompt}')">复制Prompt</button></td>
+        </tr>
+      `).join('');
+    }
+
+    /* Dual Compare View Logic */
+    function initCompareView() {
+      const selectA = document.getElementById("compareSelectA");
+      const selectB = document.getElementById("compareSelectB");
+
+      const options = UI_STYLES.map((s, idx) => `<option value="${idx}">#${s.num} ${s.name} (${s.nameZh})</option>`).join('');
+      selectA.innerHTML = options;
+      selectB.innerHTML = options;
+
+      selectA.value = 0;
+      selectB.value = 1;
+
+      function updateCompare() {
+        compareIndexA = parseInt(selectA.value, 10);
+        compareIndexB = parseInt(selectB.value, 10);
+
+        const styleA = UI_STYLES[compareIndexA];
+        const styleB = UI_STYLES[compareIndexB];
+
+        document.getElementById("compareTitleA").textContent = `#${styleA.num} ${styleA.name} (${styleA.nameZh})`;
+        document.getElementById("compareTitleB").textContent = `#${styleB.num} ${styleB.name} (${styleB.nameZh})`;
+
+        renderPhoneScreen(styleA, document.getElementById("phoneScreenA"), document.getElementById("phoneStatusBarA"), document.getElementById("screenContentA"), document.getElementById("phoneTabBarA"));
+        renderPhoneScreen(styleB, document.getElementById("phoneScreenB"), document.getElementById("phoneStatusBarB"), document.getElementById("screenContentB"), document.getElementById("phoneTabBarB"));
+      }
+
+      selectA.addEventListener("change", updateCompare);
+      selectB.addEventListener("change", updateCompare);
+      updateCompare();
+    }
+
+    /* Filtering */
+    function filterStyles() {
+      let filtered = UI_STYLES;
+      if (currentCategory !== "all") {
+        filtered = filtered.filter(s => s.category === currentCategory);
+      }
+      if (searchQuery.trim() !== "") {
+        const q = searchQuery.toLowerCase();
+        filtered = filtered.filter(s => 
+          s.name.toLowerCase().includes(q) ||
+          s.nameZh.includes(q) ||
+          s.categoryZh.includes(q) ||
+          s.keywords.some(k => k.toLowerCase().includes(q)) ||
+          s.subtitle.toLowerCase().includes(q) ||
+          s.cssSnippet.toLowerCase().includes(q)
+        );
+      }
+      renderStyleCards(filtered);
+    }
+
+    /* Event Listeners & Shortcuts */
+    function initEvents() {
+      // Filter Strip
+      filterStrip.addEventListener("click", (e) => {
+        const chip = e.target.closest(".filter-chip");
+        if (!chip) return;
+        document.querySelectorAll(".filter-chip").forEach(c => c.classList.remove("active"));
+        chip.classList.add("active");
+        currentCategory = chip.dataset.category;
+        filterStyles();
+      });
+
+      // Search
+      searchInput.addEventListener("input", (e) => {
+        searchQuery = e.target.value;
+        filterStyles();
+      });
+
+      // Format Tabs
+      document.querySelectorAll(".format-tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".format-tab-btn").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          currentPromptFormat = btn.dataset.format;
+          updatePromptDisplay(UI_STYLES[currentStyleIndex]);
+        });
+      });
+
+      // View Switcher
+      document.querySelectorAll(".view-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".view-btn").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          const v = btn.dataset.view;
+
+          focusView.style.display = v === "focus" ? "grid" : "none";
+          compareView.style.display = v === "compare" ? "flex" : "none";
+          galleryView.style.display = v === "gallery" ? "grid" : "none";
+          cheatsheetView.style.display = v === "cheatsheet" ? "block" : "none";
+
+          if (v === "gallery" && galleryView.innerHTML === "") renderGalleryView();
+          if (v === "cheatsheet" && document.getElementById("cheatsheetTableBody").innerHTML === "") renderCheatsheetView();
+          if (v === "compare") initCompareView();
+        });
+      });
+
+      // Dynamic Island Click Interaction
+      dynamicIsland.addEventListener("click", () => {
+        dynamicIsland.classList.toggle("expanded");
+        if (dynamicIsland.classList.contains("expanded")) {
+          islandLabel.textContent = "Playing Lossless Audio 🎵";
+        } else {
+          islandLabel.textContent = UI_STYLES[currentStyleIndex].name.split(' ')[0];
+        }
+      });
+
+      // Copy Prompt
+      copyPromptBtn.addEventListener("click", () => {
+        const prompt = dossierPromptText.textContent;
+        copyToClipboard(prompt, `【${UI_STYLES[currentStyleIndex].name}】配置已复制到剪贴板！`);
+      });
+
+      // Copy CSS
+      copyCssBtn.addEventListener("click", () => {
+        copyToClipboard(UI_STYLES[currentStyleIndex].cssSnippet, `【${UI_STYLES[currentStyleIndex].name}】核心 CSS 已复制！`);
+      });
+
+      // Auto Tour
+      tourBtn.addEventListener("click", () => {
+        if (tourInterval) {
+          clearInterval(tourInterval);
+          tourInterval = null;
+          tourBtn.classList.remove("active");
+          tourBtn.querySelector("span").textContent = "▶ 自动巡览模式";
+          showToast("自动巡览已暂停");
+        } else {
+          tourBtn.classList.add("active");
+          tourBtn.querySelector("span").textContent = "⏸ 巡览中 (4s/套)";
+          showToast("自动巡览已开启 (每4秒自动切换)");
+          tourInterval = setInterval(() => {
+            currentStyleIndex = (currentStyleIndex + 1) % UI_STYLES.length;
+            selectStyle(currentStyleIndex);
+          }, 4000);
+        }
+      });
+
+      // Random Style
+      document.getElementById("randomStyleBtn").addEventListener("click", () => {
+        const rand = Math.floor(Math.random() * UI_STYLES.length);
+        selectStyle(rand);
+        showToast(`已随机切换至: #${UI_STYLES[rand].num} ${UI_STYLES[rand].name}`);
+      });
+
+      // Dark Mode Invert
+      document.getElementById("toggleDarkModeBtn").addEventListener("click", () => {
+        isSimulatorDark = !isSimulatorDark;
+        phoneScreen.style.filter = isSimulatorDark ? "invert(0.92) hue-rotate(180deg)" : "none";
+        showToast(isSimulatorDark ? "已开启模拟器反转对比度" : "已恢复原始配色");
+      });
+
+      // Refresh
+      document.getElementById("restartSimBtn").addEventListener("click", () => {
+        renderPhoneScreen(UI_STYLES[currentStyleIndex], phoneScreen, phoneStatusBar, screenContent, phoneTabBar);
+        showToast("已重置模拟器组件交互状态");
+      });
+
+      // Keyboard Shortcuts Navigation
+      window.addEventListener("keydown", (e) => {
+        if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+        if (e.key === "ArrowRight" || e.key === "j" || e.key === "J") {
+          currentStyleIndex = (currentStyleIndex + 1) % UI_STYLES.length;
+          selectStyle(currentStyleIndex);
+        } else if (e.key === "ArrowLeft" || e.key === "k" || e.key === "K") {
+          currentStyleIndex = (currentStyleIndex - 1 + UI_STYLES.length) % UI_STYLES.length;
+          selectStyle(currentStyleIndex);
+        } else if (e.code === "Space") {
+          e.preventDefault();
+          tourBtn.click();
+        } else if (e.key === "c" || e.key === "C") {
+          copyPromptBtn.click();
+        } else if (e.key === "d" || e.key === "D") {
+          document.getElementById("toggleDarkModeBtn").click();
+        } else if (e.key === "/") {
+          e.preventDefault();
+          searchInput.focus();
+        }
+      });
+    }
+
+    /* Boot Up */
+    window.addEventListener("DOMContentLoaded", () => {
+      renderStyleCards(UI_STYLES);
+      selectStyle(0);
+      initEvents();
+      renderGalleryView();
+      renderCheatsheetView();
+    });
+  </script>
+</body>
+</html>
