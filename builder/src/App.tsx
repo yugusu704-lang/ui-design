@@ -2,13 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowUp, Check, ChevronDown, ChevronRight, CircleHelp, Download, Eye,
   FilePlus2, FolderOpen, Frame, GripVertical, ImagePlus, Layers2, LayoutGrid, Pencil,
-  LoaderCircle, MessageSquareText, Monitor, MoreHorizontal, PanelLeftClose,
+  LoaderCircle, MessageSquareText, MoreHorizontal, PanelLeftClose,
   PanelRightClose, Plus, Redo2, Save, Search, Settings2, Sparkles, Trash2,
   Undo2, X,
 } from 'lucide-react';
 import type { Action, BuilderNode, ComponentType, ModelConfig, Page, Project } from '../shared/types';
 import { createNode, findNode, insertNode, moveNode, removeNode, seedProject, updateNode, validateProject } from '../shared/model';
 import { Renderer } from './Renderer';
+import { DevicePreview } from './DevicePreview';
 import './editor.css';
 
 type Panel = 'components' | 'pages' | 'settings' | null;
@@ -401,17 +402,15 @@ export default function App() {
       <section className={`canvas-area ${mobilePanel === 'canvas' ? 'mobile-visible' : ''}`}>
         <div className="canvas-toolbar">
           <button className="mobile-panel-trigger" onClick={() => setMobilePanel('left')}><Plus size={14} />组件</button><div className="breadcrumb"><span>页面</span><ChevronRight size={14} /><strong>{activePage?.name ?? '未命名页面'}</strong><ChevronDown size={13} /></div>
-            <div className="canvas-meta"><span className="device-label"><Monitor size={14} />手机画布</span><span className="canvas-divider" /><span className="viewport-label">390 px</span><select className="theme-select" aria-label="演示主题" value={project.theme} disabled={Boolean(draft)} onChange={event => commit({ ...project, theme: event.target.value as Project['theme'] })}>{Object.entries(palettes).map(([key, palette]) => <option value={key} key={key}>{palette.label}</option>)}</select></div>
+            <div className="canvas-meta"><select className="theme-select" aria-label="演示主题" value={project.theme} disabled={Boolean(draft)} onChange={event => commit({ ...project, theme: event.target.value as Project['theme'] })}>{Object.entries(palettes).map(([key, palette]) => <option value={key} key={key}>{palette.label}</option>)}</select></div>
           <button className="mobile-panel-trigger inspector-trigger" onClick={() => setMobilePanel('right')}><Settings2 size={14} />属性</button>
         </div>
         <div className="canvas-stage">
-          <div className={`phone-frame theme-${(draft ?? project).theme} ${draft ? 'draft-frame' : ''}`}>
-            <div className="phone-island"><span /></div>
+          <DevicePreview theme={(draft ?? project).theme} draft={Boolean(draft)} status={draft ? '草稿预览中' : mode === 'edit' ? '编辑模式' : '交互预览'}>
             {(draft ? draft.pages.find(page => page.id === draftPageId) : activePage) ? <Renderer project={draft ?? project} pageId={(draft ? draft.pages.find(page => page.id === draftPageId) : activePage)!.id} editing={Boolean(!draft && mode === 'edit')} selectedNodeId={draft ? undefined : selectedId} onSelect={id => !draft && mode === 'edit' && setSelectedId(id)} onNavigate={id => { if (draft) { if (draft.pages.some(page => page.id === id)) setDraftPageId(id); } else { setActivePageId(id); setSelectedId(undefined); } }} /> : <div className="canvas-empty"><div className="canvas-empty-icon"><Frame size={22} /></div><h2>从一张空白画布开始</h2><p>添加组件，逐步搭建你的页面。</p><button className="button button-primary" onClick={() => setPanel('components')}><Plus size={15} />添加第一个组件</button></div>}
             {draft && <div className="draft-ribbon"><Sparkles size={13} />AI 草稿预览</div>}
             {draft && <div className="draft-actions">{draft.pages.length > 1 && <select aria-label="预览草稿页面" value={draftPageId} onChange={event => setDraftPageId(event.target.value)}>{draft.pages.map(page => <option value={page.id} key={page.id}>{page.name}</option>)}</select>}<button className="button button-subtle" onClick={() => { setDraft(undefined); setDraftPageId(undefined); showNotice('已放弃 AI 草稿', 'info'); }}>放弃草稿</button><button className="button button-primary" onClick={() => { setHistory(items => [...items.slice(-39), project]); setFuture([]); setProject(draft); setActivePageId(draft.pages.some(page => page.id === draftPageId) ? draftPageId! : draft.pages[0].id); setSelectedId(undefined); setDraft(undefined); setDraftPageId(undefined); setPrompt(''); showNotice('AI 草稿已应用，可随时撤销'); }}><Check size={14} />应用修改</button></div>}
-          </div>
-          <div className="canvas-caption"><span><span className="canvas-dot" />{draft ? '草稿预览中' : mode === 'edit' ? '编辑模式' : '交互预览'}</span><span>内容将适配移动设备</span></div>
+          </DevicePreview>
         </div>
         <div className="canvas-bottom"><span>页面结构</span><span className="structure-count">{flatten(activePage?.nodes ?? []).length} 个组件</span>{selectedNode && <><span className="canvas-divider" /><span className="selection-path">{typeLabels[selectedNode.type]} <ChevronRight size={12} /> {nodeLabel(selectedNode)}</span></>}</div>
       </section>
