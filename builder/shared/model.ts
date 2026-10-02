@@ -1,7 +1,7 @@
 import type { Project, BuilderNode, ComponentType } from './types.ts';
 import { validateMotion } from './motion.ts';
 export const COMPONENT_TYPES: ComponentType[] = ['stack','row','grid','card','divider','text','image','avatar','badge','button','input','textarea','checkbox','switch','select','progress','stat','task','habit','navbar','tabs','empty','alert','accordion','slider','radio','rating','skeleton','segmented','breadcrumb','list','timeline','pricing','testimonial','search','bottomnav'];
-export const STYLE_KEYS = ['color','background','fontSize','fontWeight','padding','margin','borderRadius','gap','textAlign','alignItems','justifyContent','minHeight','width','height','opacity','gridTemplateColumns','flexDirection'];
+export const STYLE_KEYS = ['color','background','fontSize','fontWeight','padding','margin','borderRadius','gap','textAlign','alignItems','justifyContent','minHeight','width','height','opacity','gridTemplateColumns','flexDirection','flexShrink','flexBasis'];
 export function validateProject(value: unknown): Project {
   const p = structuredClone(value) as Project;
   const fail = (message:string):never => {throw new Error(message);};
@@ -20,9 +20,29 @@ export function validateProject(value: unknown): Project {
       validateMotion(n.props);
       for(const [key,v] of Object.entries(n.props)){
         if(key.startsWith('on')||['__proto__','constructor','prototype','dangerouslySetInnerHTML'].includes(key)||key.length>80||!['string','number','boolean'].includes(typeof v)||typeof v==='number'&&!Number.isFinite(v)||typeof v==='string'&&!str(v,key==='src'?2_000_000:20000))fail('组件属性不受支持');
+        if(key==='editorLocked'&&typeof v!=='boolean')fail('锁定状态必须是布尔值');
         if(key==='src'&&typeof v==='string'&&v&&!/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(v)&&!/^https?:\/\//.test(v))fail('图片必须为HTTP地址或本地图片');
       }
-      for(const [key,v] of Object.entries(n.style))if(!STYLE_KEYS.includes(key)||!['string','number'].includes(typeof v)||typeof v==='number'&&!Number.isFinite(v)||typeof v==='string'&&(v.length>150||/url\s*\(|expression\s*\(|[<>;{}]/i.test(v)))fail('样式不受支持');
+      for(const [key,v] of Object.entries(n.style)){
+        if(!STYLE_KEYS.includes(key)||!['string','number'].includes(typeof v)||typeof v==='number'&&!Number.isFinite(v)||typeof v==='string'&&(v.length>150||/url\s*\(|expression\s*\(|[<>;{}]/i.test(v)))fail('样式不受支持');
+        if(key==='flexShrink'&&(typeof v!=='number'||v<0||v>1))fail('Flex 收缩比例必须是 0 到 1');
+        if(key==='flexBasis'){
+          const preset=typeof v==='string'&&['auto','fit-content','100%','50%'].includes(v);
+          const match=typeof v==='string'?/^(\d+(?:\.\d+)?)(px|%)$/.exec(v):null;
+          const numeric=match?Number(match[1]):NaN;
+          if(!preset&&(!match||!Number.isFinite(numeric)||numeric<(match[2]==='%'?1:24)||numeric>(match[2]==='%'?100:5000)))fail('Flex 基准尺寸无效');
+        }
+        if(key==='width'||key==='height'){
+          const min=key==='width'||n.type==='avatar'?24:32;const max=key==='width'?5000:2000;
+          if(typeof v==='number'&&(v<min||v>max))fail('组件尺寸超出范围');
+          if(typeof v==='string'){
+            const preset=key==='width'?['auto','100%','50%','fit-content']:['auto','fit-content'];
+            const match=/^(\d+(?:\.\d+)?)(px|%)$/.exec(v);
+            const numeric=match?Number(match[1]):NaN;
+            if(!preset.includes(v)&&(!match||!Number.isFinite(numeric)||numeric<(match[2]==='%'?1:min)||numeric>(match[2]==='%'?100:max)))fail('组件尺寸格式无效');
+          }
+        }
+      }
       if(n.action){
         if(Object.keys(n.action).some(key=>!['type','target','message'].includes(key))||!['navigate','toast','toggle','submit','dialog'].includes(n.action.type)||n.action.message!==undefined&&!str(n.action.message,2000)||n.action.target!==undefined&&!str(n.action.target,100))fail('动作无效');
         if(n.action.type==='navigate'&&!pageIds.has(n.action.target||'')||n.action.type==='submit'&&n.action.target!==undefined&&!pageIds.has(n.action.target))fail('跳转目标页面不存在');

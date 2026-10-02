@@ -13,6 +13,21 @@ test('private model configuration cannot enter saved or exported project data', 
 test('submit can only navigate to an existing page',()=>{
   assert.throws(()=>validateProject({...project,pages:[{...project.pages[0],nodes:[{...project.pages[0].nodes[0],action:{type:'submit',target:'missing'}}]}]}));
 });
+test('dimension validation rejects numeric sizes outside canvas limits',()=>{
+  assert.throws(()=>validateProject({...project,pages:[{...project.pages[0],nodes:[{...project.pages[0].nodes[0],style:{width:23}}]}]}));
+  assert.throws(()=>validateProject({...project,pages:[{...project.pages[0],nodes:[{...project.pages[0].nodes[0],style:{height:2001}}]}]}));
+});
+test('editor locks are boolean and legacy width presets remain byte-for-byte intact',()=>{
+  assert.throws(()=>validateProject({...project,pages:[{...project.pages[0],nodes:[{...project.pages[0].nodes[0],props:{editorLocked:'true'}}]}]}));
+  const locked={...project,pages:[{...project.pages[0],nodes:[{...project.pages[0].nodes[0],props:{editorLocked:true},style:{width:'fit-content'}}]}]};
+  assert.deepEqual(validateProject(locked),locked);
+});
+test('numeric canvas dimensions accept only the authored flex settings',()=>{
+  const sized={...project,pages:[{...project.pages[0],nodes:[{...project.pages[0].nodes[0],style:{width:120,flexShrink:0,flexBasis:'auto'}}]}]};
+  assert.deepEqual(validateProject(sized),sized);
+  assert.throws(()=>validateProject({...project,pages:[{...project.pages[0],nodes:[{...project.pages[0].nodes[0],style:{width:120,flexShrink:2,flexBasis:'auto'}}]}]}));
+  assert.throws(()=>validateProject({...project,pages:[{...project.pages[0],nodes:[{...project.pages[0].nodes[0],style:{width:120,flexShrink:0,flexBasis:'2fr'}}]}]}));
+});
 test('reject executable content and invalid navigation before AI drafts are applied', () => {
   assert.throws(() => validateProject({...project,pages:[{...project.pages[0],nodes:[{...project.pages[0].nodes[0],type:'script'}]}]}));
   assert.throws(() => validateProject({...project,pages:[{...project.pages[0],nodes:[{...project.pages[0].nodes[0],action:{type:'navigate',target:'missing'}}]}]}));

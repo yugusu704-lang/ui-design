@@ -640,3 +640,83 @@ button:disabled { cursor: not-allowed !important; opacity: .48; }
 @media (max-width: 760px) {
   .page-remove { display: grid; }
 }
+
+/* Final responsive sizing: the status row participates in the shell, not the canvas. */
+.atelier-shell .workspace { flex: 1 1 0; min-height: 0; }
+.topbar { flex: 0 0 auto; }
+.topbar-actions { flex-shrink: 0; }
+.canvas-toolbar { gap: 12px; }
+.canvas-toolbar .breadcrumb { min-width: 0; }
+.canvas-toolbar .breadcrumb select { min-width: 0; max-width: 104px; min-height: 32px; }
+.canvas-meta { margin-left: auto; margin-right: 0; }
+.canvas-hint { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.component-groups { min-height: 0; }
+.insert-context { flex-shrink: 0; margin-bottom: 5px; }
+.icon-button.small, .collapse-button, .page-rename, .page-remove, .insert-context button, .tree-disclosure, .segmented button, .canvas-bottom button { min-width: 32px; min-height: 32px; }
+.tree-disclosure { flex-basis: 32px; }
+.tree-spacer { flex-basis: 8px; width: 8px; }
+.layer-select { min-height: 32px; }
+.category-filter button, .mode-switch button, .theme-select, .ai-scope select { min-height: 32px; }
+.page-list { overflow-y: auto; min-height: 0; }
+.page-panel-note { flex-shrink: 0; }
+@media (max-width: 1180px) and (min-width: 761px) {
+  .topbar { gap: 16px; padding-inline: 16px; }
+  .brand-lockup { width: 138px; flex-basis: 138px; }
+  .topbar-actions { gap: 6px; }
+  .local-chip { display: none; }
+  .project-title { width: 100%; }
+  .canvas-toolbar { gap: 8px; padding-inline: 10px; }
+  .canvas-toolbar .breadcrumb > span, .canvas-toolbar .breadcrumb > svg { display: none; }
+  .canvas-toolbar .breadcrumb select { max-width: 74px; }
+  .theme-select { max-width: 92px; }
+  .right-panel .right-tabs { gap: 0; padding-left: 8px; }
+  .right-tab { padding-inline: 6px; }
+}
+@media (max-width: 760px) {
+  .topbar { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 4px 12px; height: auto; min-height: 100px; padding: 8px 12px; }
+  .brand-lockup { width: auto; }
+  .project-title-wrap { justify-content: flex-end; height: 28px; }
+  .project-title { text-align: right; max-width: 230px; }
+  .topbar-actions { grid-column: 1 / -1; justify-content: space-between; gap: 4px; }
+  .topbar-actions .history-actions { display: flex; }
+  .topbar-actions .icon-button, .topbar-actions .button, .topbar-actions .mode-switch button { width: 44px; min-width: 44px; height: 44px; min-height: 44px; padding: 0; }
+  .topbar-actions .button span { display: none; }
+  .topbar-actions .mode-switch { padding: 0; gap: 0; }
+  .topbar-actions .mode-switch button { font-size: 0; gap: 0; }
+  .settings-shortcut { display: inline-grid; margin: 0; }
+  .brand-mark { display: none; }
+  .brand-caption { display: none; }
+  .topbar-rule, .local-chip { display: none; }
+  .canvas-toolbar { min-height: 56px; height: 56px; gap: 5px; }
+  .canvas-toolbar .focus-toggle { padding-inline: 8px; min-height: 44px; font-size: 11px; }
+  .canvas-toolbar .breadcrumb { flex: 1; }
+  .canvas-toolbar .breadcrumb > span, .canvas-toolbar .breadcrumb > svg { display: none; }
+  .canvas-toolbar .breadcrumb select { width: 100%; max-width: 95px; min-height: 44px; font-size: 12px; }
+  .canvas-toolbar .canvas-meta { display: none; }
+  .mobile-panel-trigger, .mobile-back { min-height: 44px; min-width: 44px; }
+  .left-panel-tabs, .right-tabs { min-height: 60px; height: 60px; }
+  .left-panel-tabs > button:not(.collapse-button), .right-tab { min-height: 44px; }
+  .icon-button.small, .page-rename, .page-remove, .insert-context button, .tree-disclosure, .layer-lock, .canvas-bottom button { min-width: 44px; min-height: 44px; }
+  .layer-row, .layer-select { min-height: 44px; }
+  .layer-lock { flex-basis: 44px; }
+  .tree-disclosure { flex-basis: 44px; }
+  .category-filter button, .template-picker summary, .appearance-presets button, .node-tools button, .property-subtabs button, .segmented button, .page-select, .add-page-button { min-height: 44px; }
+  .search-field { min-height: 44px; }
+  .field-row input:not([type='color']):not([type='range']):not([type='checkbox']), .field-row select, .color-control { height: 44px; }
+  .field-row textarea, .field-row input, .search-field input { font-size: 16px; }
+  .preview-controls select { height: 44px; font-size: 11px; }
+  .canvas-pagebar { flex-shrink: 0; }
+  .canvas-pagebar button { min-height: 44px; }
+  .canvas-bottom { min-height: 52px; overflow-x: auto; gap: 7px; padding-inline: 10px; }
+  .canvas-bottom > * { flex-shrink: 0; }
+  .panel-heading { padding-top: 14px; padding-bottom: 12px; }
+  .template-picker { margin-bottom: 10px; padding-bottom: 8px; }
+  .canvas-stage { padding-top: 8px; }
+}
+/* Focus takes precedence over either saved collapsed-panel state. */
+.atelier-shell .workspace.focused { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 760px) {
+  .atelier-shell .workspace { height: auto; }
+  .topbar-actions { gap: 0; }
+  .topbar-actions .history-actions { gap: 0; }
+}

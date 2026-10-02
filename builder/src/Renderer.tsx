@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { BuilderNode, Project } from '../shared/types';
 import { readNodePosition } from '../shared/position';
+import { isNodeLocked, normalizeSelection, resizeAxes, type LayoutChange } from '../shared/layout';
 import { readMotion, motionStyle } from '../shared/motion';
 import { useCanvasDrag } from './useCanvasDrag';
 import { ExtendedNode } from './ExtendedNode';
@@ -17,9 +18,11 @@ export interface RendererProps {
   pageId: string;
   editing: boolean;
   selectedNodeId?: string;
-  onSelect?: (id: string) => void;
+  selectedNodeIds?: string[];
+  onSelect?: (id: string, additive?: boolean) => void;
   onNavigate?: (id: string) => void;
   onMove?: (id: string, position: { x: number; y: number }) => void;
+  onLayoutCommit?: (changes: LayoutChange[]) => void;
   motionReplay?: number;
 }
 
@@ -39,6 +42,7 @@ function nodeStyle(input: BuilderNode['style']): React.CSSProperties {
       output[key] = value;
     }
   }
+  if (typeof input?.width === 'number') { output.flexShrink = 0; output.flexBasis = 'auto'; }
   return output as React.CSSProperties;
 }
 
@@ -71,7 +75,7 @@ export function requiredFieldError(nodes: BuilderNode[], values: Values, pageId:
   return missing ? textProp(missing, 'label', 'placeholder') : undefined;
 }
 
-export function Renderer({ project, pageId, editing, selectedNodeId, onSelect, onNavigate, onMove, motionReplay = 0 }: RendererProps) {
+export function Renderer({ project, pageId, editing, selectedNodeId, selectedNodeIds, onSelect, onNavigate, onMove, onLayoutCommit, motionReplay = 0 }: RendererProps) {
   const page = project.pages.find((item) => item.id === pageId);
   const [values, setValues] = useState<Values>({});
   const [completed, setCompleted] = useState<Record<string, boolean>>({});
@@ -79,7 +83,8 @@ export function Renderer({ project, pageId, editing, selectedNodeId, onSelect, o
   const [tasks, setTasks] = useState<StoredTask[]>([]);
   const [toast, setToast] = useState('');
   const [dialog, setDialog] = useState('');
-  const drag = useCanvasDrag({ enabled: editing && Boolean(onMove), pageId, onSelect, onMove });
+  const selection = normalizeSelection(page?.nodes ?? [], selectedNodeIds ?? (selectedNodeId ? [selectedNodeId] : []));
+  const drag = useCanvasDrag({ enabled: editing && Boolean(onMove || onLayoutCommit), pageId, nodes: page?.nodes ?? [], selectedNodeIds: selection, onSelect, onMove, onLayoutCommit });
   const lastReplay = useRef(motionReplay);
   const [replay, setReplay] = useState<{ id: string; token: number; active: boolean }>();
   useEffect(() => {
@@ -142,14 +147,16 @@ export function Renderer({ project, pageId, editing, selectedNodeId, onSelect, o
 
   const renderNode = (node: BuilderNode, path: string): React.ReactNode => {
     const key = `${pageId}/${node.id}`;
-    const selected = selectedNodeId === node.id;
+    const selected = selection.includes(node.id);
+    const locked = isNodeLocked(page?.nodes ?? [], node.id);
     const childNodes = childrenOf(node);
     const label = textProp(node, 'label', 'title', 'text', 'name');
     const content = (className = '') => <span className={className}>{label || textProp(node, 'value', 'caption')}</span>;
     const kids = () => childNodes.map((child, index) => <React.Fragment key={`${pageId}/${child.id}`}>{renderNode(child, `${path}/${index}`)}</React.Fragment>);
     const handleClick = (event: React.MouseEvent) => {
       if (editing) {
-        event.preventDefault(); event.stopPropagation(); onSelect?.(node.id);
+        event.preventDefault(); event.stopPropagation();
+        if (!event.detail || !drag.consumePointerSelection(node.id)) onSelect?.(node.id, event.shiftKey);
       }
     };
     const position = readNodePosition(node.props);
@@ -157,12 +164,16 @@ export function Renderer({ project, pageId, editing, selectedNodeId, onSelect, o
     const isReplaying = editing && replay?.id === node.id && replay.active && selected;
     const nodeKey = editing && replay?.id === node.id ? `${key}/replay-${replay.token}` : key;
     const common = {
-      className: `demo-node demo-${node.type}${textProp(node, 'variant') ? ` variant-${textProp(node, 'variant')}` : ''}${editing ? ' is-editing' : ''}${selected ? ' is-selected' : ''}`,
+      className: `demo-node demo-${node.type}${textProp(node, 'variant') ? ` variant-${textProp(node, 'variant')}` : ''}${editing ? ' is-editing' : ''}${selected ? ' is-selected' : ''}${locked ? ' is-locked' : ''}`,
       style: { ...nodeStyle(node.style), ...motionStyle(motion), ...(isReplaying ? { '--motion-iterations': '1' } : {}), position: 'relative' as const, left: position.x, top: position.y },
       onClick: (event: React.MouseEvent) => { handleClick(event); if (!editing && node.action && !['button', 'tabs', 'switch', 'task', 'habit', 'navbar'].includes(node.type)) runAction(node); },
       'data-node-id': node.id,
       'data-offset-x': position.x,
       'data-offset-y': position.y,
+      'data-node-type': node.type,
+      'data-resize-axes': locked ? 'none' : resizeAxes(node.type),
+      'data-authored-width': typeof node.style.width === 'number' ? 'true' : undefined,
+      'data-authored-height': typeof node.style.height === 'number' ? 'true' : undefined,
       'data-animation': motion.preset,
       'data-motion-trigger': isReplaying ? 'enter' : motion.trigger,
       'data-motion-enabled': !editing || isReplaying ? 'true' : 'false',
