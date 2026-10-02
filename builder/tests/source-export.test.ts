@@ -6,6 +6,6 @@ test('export creates a portable React project and excludes editor credentials',a
   const zip=await exportProject(seedProject);
   assert.equal(Buffer.from(zip).readUInt32LE(0),0x04034b50);
   const body=Buffer.from(zip).toString('utf8');
-  for(const name of ['package.json','src/Renderer.tsx','src/runtime.css','src/project.json','src/main.tsx'])assert.ok(body.includes(name),name);
+  for(const name of ['package.json','src/Renderer.tsx','src/ExtendedNode.tsx','src/useCanvasDrag.ts','shared/position.ts','shared/motion.ts','src/runtime.css','src/project.json','src/main.tsx','OPEN_SOURCE.md'])assert.ok(body.includes(name),name);
   assert.ok(!body.includes('apiKey'));
 });

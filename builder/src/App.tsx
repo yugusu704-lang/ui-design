@@ -4,55 +4,26 @@ import {
   FilePlus2, FolderOpen, Frame, GripVertical, ImagePlus, Layers2, LayoutGrid, Pencil,
   LoaderCircle, MessageSquareText, MoreHorizontal, PanelLeftClose,
   PanelRightClose, Plus, Redo2, Save, Search, Settings2, Sparkles, Trash2,
-  Undo2, X,
+  Undo2, X, Copy, Play, RotateCcw, Move, WandSparkles,
 } from 'lucide-react';
 import type { Action, BuilderNode, ComponentType, ModelConfig, Page, Project } from '../shared/types';
 import { createNode, findNode, insertNode, moveNode, removeNode, seedProject, updateNode, validateProject } from '../shared/model';
 import { Renderer } from './Renderer';
 import { DevicePreview } from './DevicePreview';
+import { componentGroups, typeLabels } from '../shared/catalog';
+import { duplicateNode, insertAfter } from '../shared/editor';
+import { motionPresets } from '../shared/motion';
 import './editor.css';
 
 type Panel = 'components' | 'pages' | 'settings' | null;
 type Notice = { kind: 'success' | 'error' | 'info'; text: string };
 
-const componentGroups: { title: string; note?: string; items: { type: ComponentType; label: string; hint: string }[] }[] = [
-  { title: '布局', items: [
-    { type: 'stack', label: '垂直容器', hint: '纵向排列内容' }, { type: 'row', label: '水平容器', hint: '横向排列内容' },
-    { type: 'grid', label: '网格容器', hint: '多列内容布局' }, { type: 'card', label: '卡片', hint: '带底色的内容组' }, { type: 'divider', label: '分割线', hint: '轻量内容分隔' },
-  ] },
-  { title: '内容', items: [
-    { type: 'text', label: '文本', hint: '标题、正文或说明' }, { type: 'image', label: '图片', hint: '本地选择一张图片' },
-    { type: 'avatar', label: '头像', hint: '人物或图标占位' }, { type: 'badge', label: '标签', hint: '状态与分类标记' },
-  ] },
-  { title: '操作', items: [
-    { type: 'button', label: '按钮', hint: '触发本地模拟动作' },
-  ] },
-  { title: '表单', items: [
-    { type: 'input', label: '单行输入', hint: '文本输入框' },
-    { type: 'textarea', label: '多行输入', hint: '较长内容输入框' }, { type: 'checkbox', label: '复选框', hint: '选择一个选项' },
-    { type: 'switch', label: '开关', hint: '切换一个状态' }, { type: 'select', label: '下拉选择', hint: '从选项中选择' },
-  ] },
-  { title: '导航', items: [
-    { type: 'navbar', label: '顶部导航', hint: '页面标题与返回操作' }, { type: 'tabs', label: '标签切换', hint: '切换内容分组' },
-  ] },
-  { title: '反馈与浮层', note: '提示与对话框可通过「操作」组件的动作属性配置。', items: [
-    { type: 'empty', label: '空状态', hint: '没有内容时的提示' },
-  ] },
-  { title: '数据展示', items: [
-    { type: 'progress', label: '进度条', hint: '目标完成进度' }, { type: 'stat', label: '数据概览', hint: '数字与变化趋势' },
-  ] },
-  { title: '业务组合', items: [
-    { type: 'task', label: '任务条目', hint: '待办事项展示' }, { type: 'habit', label: '习惯打卡', hint: '习惯记录组件' },
-  ] },
-];
-
-const typeLabels = Object.fromEntries(componentGroups.flatMap(group => group.items.map(item => [item.type, item.label]))) as Record<ComponentType, string>;
-typeLabels.navbar = '顶部导航';
 const primaryContent: Partial<Record<ComponentType, string>> = {
   text: 'text', avatar: 'text', badge: 'text', button: 'label', input: 'label', textarea: 'label',
   checkbox: 'label', switch: 'label', select: 'label', progress: 'label', stat: 'label',
   task: 'title', habit: 'title', empty: 'title', navbar: 'title', card: 'title',
 };
+const contentLabels = { text: '文案', title: '标题', label: '标签', placeholder: '占位提示', value: '显示值', description: '说明', caption: '辅助文案', subtitle: '副标题', items: '条目', alt: '图片说明', tag: '分类', days: '连续天数', options: '选项', min: '最小值', max: '最大值', step: '步长', unit: '单位', rows: '占位行数', price: '价格', period: '计费周期', features: '功能清单', author: '姓名', role: '身份', quote: '评价', rating: '评分' } as const;
 const palettes: Record<Project['theme'], { label: string; description: string; swatches: string[] }> = {
   nordic: { label: '北欧清简', description: '明亮留白与柔和绿意', swatches: ['#f5f4ee', '#344f42', '#d9e5d8'] },
   editorial: { label: '纸感编辑', description: '温暖纸色与衬线标题', swatches: ['#f3efe6', '#3d3831', '#b86b4c'] },
@@ -113,6 +84,10 @@ export default function App() {
   const [panel, setPanel] = useState<Panel>('components');
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
   const [query, setQuery] = useState('');
+  const [category, setCategory] = useState('全部');
+  const [propertyTab, setPropertyTab] = useState<'content' | 'layout' | 'action'>('content');
+  const [revealId, setRevealId] = useState<string>();
+  const [motionReplay, setMotionReplay] = useState(0);
   const [notice, setNotice] = useState<Notice>();
   const [busy, setBusy] = useState<'save' | 'export' | 'ai' | null>(null);
   const [savedAt, setSavedAt] = useState<number>();
@@ -127,12 +102,13 @@ export default function App() {
   const [hasApiKey, setHasApiKey] = useState(false);
   const [configBusy, setConfigBusy] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [rightTab, setRightTab] = useState<'properties' | 'ai'>('properties');
+  const [rightTab, setRightTab] = useState<'properties' | 'motion' | 'ai'>('properties');
   const [mobilePanel, setMobilePanel] = useState<'canvas' | 'left' | 'right'>('canvas');
   const fileRef = useRef<HTMLInputElement>(null);
   const toastTimer = useRef<number | undefined>(undefined);
   const initialProject = useRef(project);
   const latestProject = useRef(project);
+  const lastHistoryGroup = useRef<string | undefined>(undefined);
   latestProject.current = project;
 
   const activePage = project.pages.find(page => page.id === activePageId) ?? project.pages[0];
@@ -141,7 +117,7 @@ export default function App() {
   const filteredGroups = useMemo(() => componentGroups.map(group => ({
     ...group,
     items: group.items.filter(item => `${item.label} ${item.hint} ${item.type}`.toLowerCase().includes(query.toLowerCase())),
-  })).filter(group => group.items.length), [query]);
+  })).filter(group => group.items.length && (category === '全部' || category === group.title)), [query, category]);
 
   const showNotice = useCallback((text: string, kind: Notice['kind'] = 'success') => {
     setNotice({ text, kind });
@@ -158,6 +134,16 @@ export default function App() {
     try { localStorage.setItem(cacheKey, JSON.stringify(project)); setCacheAvailable(true); }
     catch { setCacheAvailable(false); }
   }, [project]);
+
+  useEffect(() => {
+    if (!revealId) return;
+    const frame = requestAnimationFrame(() => {
+      const node = Array.from(document.querySelectorAll<HTMLElement>('.phone-screen [data-node-id]')).find(item => item.dataset.nodeId === revealId);
+      node?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      setRevealId(undefined);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [revealId, project]);
 
   useEffect(() => {
     let alive = true;
@@ -180,32 +166,37 @@ export default function App() {
     return () => { alive = false; };
   }, []);
 
-  const commit = useCallback((next: Project) => {
+  const commit = useCallback((next: Project, group?: string) => {
     if (draft || busy === 'ai') return;
-    setHistory(items => [...items.slice(-39), project]);
+    try { validateProject(next); }
+    catch (error) { showNotice(error instanceof Error ? error.message : '修改无效', 'error'); return; }
+    if (!group || lastHistoryGroup.current !== group) setHistory(items => [...items.slice(-39), project]);
+    lastHistoryGroup.current = group;
     setFuture([]);
     setProject(next);
-  }, [project, draft, busy]);
+  }, [project, draft, busy, showNotice]);
 
-  const patchPage = (patch: Partial<Page>) => {
+  const patchPage = (patch: Partial<Page>, group?: string) => {
     if (!activePage || draft || busy === 'ai') return;
-    commit({ ...project, pages: project.pages.map(page => page.id === activePage.id ? { ...page, ...patch } : page) });
+    commit({ ...project, pages: project.pages.map(page => page.id === activePage.id ? { ...page, ...patch } : page) }, group);
   };
 
-  const updateSelected = (patch: Partial<BuilderNode>) => {
+  const updateSelected = (patch: Partial<BuilderNode>, group?: string) => {
     if (!activePage || !selectedId || draft || busy === 'ai') return;
-    patchPage({ nodes: updateNode(activePage.nodes, selectedId, patch) });
+    patchPage({ nodes: updateNode(activePage.nodes, selectedId, patch) }, group);
   };
 
   const addComponent = (type: ComponentType) => {
     if (!activePage || draft || busy === 'ai') return;
     const node = createNode(type);
     const canNest = selectedNode && ['stack', 'row', 'grid', 'card'].includes(selectedNode.type);
-    patchPage({ nodes: insertNode(activePage.nodes, node, canNest ? selectedNode.id : undefined) });
+    patchPage({ nodes: canNest ? insertNode(activePage.nodes, node, selectedNode.id) : insertAfter(activePage.nodes, node, selectedId) });
     setSelectedId(node.id);
+    setRevealId(node.id);
+    setRightTab('properties');
     setMode('edit');
     setMobilePanel('canvas');
-    showNotice(`${typeLabels[type]}已添加`);
+    showNotice(`${typeLabels[type]}已添加${canNest ? `到「${nodeLabel(selectedNode)}」` : ''}，可直接拖动位置`);
   };
 
   const addPage = () => {
@@ -238,6 +229,7 @@ export default function App() {
     if (draft || busy === 'ai') return;
     const previous = history.at(-1);
     if (!previous) return;
+    lastHistoryGroup.current = undefined;
     setHistory(items => items.slice(0, -1));
     setFuture(items => [...items, project]);
     setProject(previous);
@@ -247,10 +239,39 @@ export default function App() {
     if (draft || busy === 'ai') return;
     const next = future.at(-1);
     if (!next) return;
+    lastHistoryGroup.current = undefined;
     setFuture(items => items.slice(0, -1));
     setHistory(items => [...items, project]);
     setProject(next);
     showNotice('已恢复操作', 'info');
+  };
+
+  const deleteSelected = () => {
+    if (!selectedNode || !activePage || draft || busy === 'ai') return;
+    patchPage({ nodes: removeNode(activePage.nodes, selectedNode.id) });
+    setSelectedId(undefined);
+    showNotice('组件已删除，可撤销恢复', 'info');
+  };
+
+  const copySelected = () => {
+    if (!selectedNode || !activePage || draft || busy === 'ai') return;
+    const copy = duplicateNode(selectedNode);
+    patchPage({ nodes: insertAfter(activePage.nodes, copy, selectedNode.id) });
+    setSelectedId(copy.id);
+    setRevealId(copy.id);
+    showNotice('组件已复制');
+  };
+
+  const moveComponent = (id: string, position: { x: number; y: number }) => {
+    if (!activePage || draft || busy === 'ai') return;
+    const node = findNode(activePage.nodes, id);
+    if (!node) return;
+    patchPage({ nodes: updateNode(activePage.nodes, id, { props: { ...node.props, offsetX: position.x, offsetY: position.y } }) });
+  };
+
+  const switchPage = (id: string) => {
+    setActivePageId(id);
+    setSelectedId(undefined);
   };
 
   const saveProject = async () => {
@@ -265,6 +286,34 @@ export default function App() {
     } catch (error) { showNotice(error instanceof Error ? `保存失败：${error.message}` : '保存失败，请检查本地服务', 'error'); }
     finally { setBusy(null); }
   };
+
+  useEffect(() => {
+    const shortcuts = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      const typing = Boolean(target.closest('input,textarea,select,[contenteditable="true"]'));
+      if (configOpen || draft || busy === 'ai') return;
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); if (!busy) void saveProject(); return; }
+      if (typing) return;
+      if (event.ctrlKey || event.metaKey) {
+        if (event.key.toLowerCase() === 'z') { event.preventDefault(); if (event.shiftKey) redo(); else undo(); }
+        if (event.key.toLowerCase() === 'y') { event.preventDefault(); redo(); }
+        if (event.key.toLowerCase() === 'd') { event.preventDefault(); copySelected(); }
+        return;
+      }
+      if (event.key === 'Escape') setSelectedId(undefined);
+      if (mode !== 'edit') return;
+      if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); deleteSelected(); }
+      if (selectedNode && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+        event.preventDefault();
+        const step = event.shiftKey ? 10 : 1;
+        const x = Number(selectedNode.props.offsetX ?? 0) + (event.key === 'ArrowRight' ? step : event.key === 'ArrowLeft' ? -step : 0);
+        const y = Number(selectedNode.props.offsetY ?? 0) + (event.key === 'ArrowDown' ? step : event.key === 'ArrowUp' ? -step : 0);
+        moveComponent(selectedNode.id, { x: Math.max(-5000, Math.min(5000, x)), y: Math.max(-5000, Math.min(5000, y)) });
+      }
+    };
+    window.addEventListener('keydown', shortcuts);
+    return () => window.removeEventListener('keydown', shortcuts);
+  });
 
   const exportProject = async () => {
     setBusy('export');
@@ -351,11 +400,14 @@ export default function App() {
 
   const selectedAction = selectedNode?.action;
   const setAction = (patch: Partial<Action>) => updateSelected({ action: { type: selectedAction?.type ?? 'toast', ...selectedAction, ...patch } });
+  const openComponents = () => { setPanel('components'); setMobilePanel('left'); };
 
-  return <main className="atelier-shell">
+  useEffect(() => { document.querySelector('.right-content')?.scrollTo({ top: 0 }); }, [rightTab, selectedId]);
+
+  return <main className="atelier-shell" onBlurCapture={() => { lastHistoryGroup.current = undefined; }}>
     <header className="topbar">
       <div className="brand-lockup"><span className="brand-mark">A</span><div><div className="brand-name">Atelier</div><div className="brand-caption">LOCAL BUILDER</div></div></div>
-      <div className="project-title-wrap"><span className="topbar-rule" /><input className="project-title" aria-label="项目名称" maxLength={100} value={project.name} readOnly={Boolean(draft) || busy === 'ai'} onChange={event => commit({ ...project, name: event.target.value })} /><span className="local-chip"><span />本地项目</span></div>
+      <div className="project-title-wrap"><span className="topbar-rule" /><input className="project-title" aria-label="项目名称" maxLength={100} value={project.name} readOnly={Boolean(draft) || busy === 'ai'} onChange={event => commit({ ...project, name: event.target.value }, 'project-name')} /><span className="local-chip"><span />本地项目</span></div>
       <div className="topbar-actions">
         <div className="history-actions">
           <button className="icon-button" title="撤销" aria-label="撤销" disabled={!history.length} onClick={undo}><Undo2 size={16} /></button>
@@ -371,10 +423,10 @@ export default function App() {
       </div>
     </header>
 
-    <div className="workspace">
+    <div className={`workspace ${panel === null ? 'left-is-collapsed' : ''}`}>
       <aside className={`left-panel ${panel === 'pages' ? 'pages-mode' : ''} ${mobilePanel === 'left' ? 'mobile-visible' : ''}`}>
         <div className="left-panel-tabs">
-          <button className={panel !== 'pages' ? 'selected' : ''} onClick={() => setPanel('components')}><Plus size={14} />组件</button>
+          <button className={panel !== 'pages' ? 'selected' : ''} onClick={openComponents}><Plus size={14} />组件</button>
           <button className={panel === 'pages' ? 'selected' : ''} onClick={() => setPanel('pages')}><FolderOpen size={14} />页面</button>
           <button className="collapse-button" title="收起左侧面板" onClick={() => setPanel(panel ? null : 'components')}><PanelLeftClose size={15} /></button>
           <button className="mobile-back" onClick={() => setMobilePanel('canvas')}>返回画布</button>
@@ -392,58 +444,62 @@ export default function App() {
         </div> : panel === 'components' ? <>
           <div className="panel-heading"><div><span className="eyebrow">BUILD</span><h2>组件库</h2></div><span className="component-count">{componentGroups.reduce((n, group) => n + group.items.length, 0)} 个</span></div>
           <div className="search-field"><Search size={15} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="搜索组件" aria-label="搜索组件" /></div>
+          <div className="category-filter" aria-label="组件分类">{['全部', ...componentGroups.map(group => group.title)].map(title => <button key={title} aria-pressed={category === title} className={category === title ? 'active' : ''} onClick={() => setCategory(title)}>{title}</button>)}</div>
+          <div className="insert-context"><span>添加到</span><strong>{selectedNode && ['stack', 'row', 'grid', 'card'].includes(selectedNode.type) ? nodeLabel(selectedNode) : activePage?.name}</strong>{selectedNode && <button title="取消选中，添加到页面末尾" onClick={() => setSelectedId(undefined)}><X size={12} /></button>}</div>
           <div className="component-groups">{filteredGroups.length ? filteredGroups.map(group => <section className="component-group" key={group.title}>
-            <h3>{group.title}</h3>{group.note && <p className="component-group-note">{group.note}</p>}<div className="component-grid">{group.items.map(item => <button key={item.type} className="component-tile" onClick={() => addComponent(item.type)} title={`添加${item.label}`} disabled={Boolean(draft)}><span className={`component-glyph glyph-${item.type}`}>{nodeIcon(item.type)}</span><span>{item.label}</span><Plus className="tile-plus" size={13} /></button>)}</div>
-          </section>) : <div className="empty-search"><Search size={20} /><span>没有找到相关组件</span><button onClick={() => setQuery('')}>清空搜索</button></div>}</div>
-          <div className="panel-footer"><span className="footer-mark">A</span><span>组件保持简单，组合由你决定。</span><MoreHorizontal size={16} /></div>
-        </> : <div className="left-collapsed"><button onClick={() => setPanel('components')}><Plus size={16} /><span>组件</span></button><button onClick={() => setPanel('pages')}><FolderOpen size={16} /><span>页面</span></button></div>}
+            <h3>{group.title}<span>{group.items.length}</span></h3>{group.note && <p className="component-group-note">{group.note}</p>}<div className="component-grid">{group.items.map(item => <button key={item.type} className="component-tile" onClick={() => addComponent(item.type)} title={`添加${item.label}`} disabled={Boolean(draft) || busy === 'ai'}><span className={`component-glyph glyph-${item.type}`}>{nodeIcon(item.type)}</span><span className="tile-copy"><strong>{item.label}</strong><small>{item.hint}</small></span><Plus className="tile-plus" size={13} /></button>)}</div>
+          </section>) : <div className="empty-search"><Search size={20} /><span>没有找到相关组件</span><button onClick={() => { setQuery(''); setCategory('全部'); }}>重置筛选</button></div>}</div>
+          <div className="panel-footer"><span className="footer-mark">A</span><span>开源灵感</span><a href="https://github.com/shadcn-ui/ui" target="_blank" rel="noreferrer">shadcn/ui</a><a href="https://github.com/radix-ui/primitives" target="_blank" rel="noreferrer">Radix</a></div>
+        </> : <div className="left-collapsed"><button onClick={openComponents}><Plus size={16} /><span>组件</span></button><button onClick={() => setPanel('pages')}><FolderOpen size={16} /><span>页面</span></button></div>}
       </aside>
 
       <section className={`canvas-area ${mobilePanel === 'canvas' ? 'mobile-visible' : ''}`}>
         <div className="canvas-toolbar">
-          <button className="mobile-panel-trigger" onClick={() => setMobilePanel('left')}><Plus size={14} />组件</button><div className="breadcrumb"><span>页面</span><ChevronRight size={14} /><strong>{activePage?.name ?? '未命名页面'}</strong><ChevronDown size={13} /></div>
+          <button className="mobile-panel-trigger" onClick={() => setMobilePanel('left')}><Plus size={14} />组件</button><div className="breadcrumb"><span>页面</span><ChevronRight size={14} /><select aria-label="当前页面" value={activePage?.id} onChange={event => switchPage(event.target.value)}>{project.pages.map(page => <option key={page.id} value={page.id}>{page.name}</option>)}</select></div>
             <div className="canvas-meta"><select className="theme-select" aria-label="演示主题" value={project.theme} disabled={Boolean(draft)} onChange={event => commit({ ...project, theme: event.target.value as Project['theme'] })}>{Object.entries(palettes).map(([key, palette]) => <option value={key} key={key}>{palette.label}</option>)}</select></div>
           <button className="mobile-panel-trigger inspector-trigger" onClick={() => setMobilePanel('right')}><Settings2 size={14} />属性</button>
         </div>
+        <div className="canvas-pagebar" aria-label="项目页面">{project.pages.map(page => <button key={page.id} className={page.id === activePageId ? 'active' : ''} aria-pressed={page.id === activePageId} onClick={() => switchPage(page.id)}>{page.name}</button>)}<button className="pagebar-add" title="新建页面" aria-label="新建页面" onClick={addPage} disabled={Boolean(draft) || busy === 'ai'}><Plus size={14} /></button></div>
         <div className="canvas-stage">
           <DevicePreview theme={(draft ?? project).theme} draft={Boolean(draft)} status={draft ? '草稿预览中' : mode === 'edit' ? '编辑模式' : '交互预览'}>
-            {(draft ? draft.pages.find(page => page.id === draftPageId) : activePage) ? <Renderer project={draft ?? project} pageId={(draft ? draft.pages.find(page => page.id === draftPageId) : activePage)!.id} editing={Boolean(!draft && mode === 'edit')} selectedNodeId={draft ? undefined : selectedId} onSelect={id => !draft && mode === 'edit' && setSelectedId(id)} onNavigate={id => { if (draft) { if (draft.pages.some(page => page.id === id)) setDraftPageId(id); } else { setActivePageId(id); setSelectedId(undefined); } }} /> : <div className="canvas-empty"><div className="canvas-empty-icon"><Frame size={22} /></div><h2>从一张空白画布开始</h2><p>添加组件，逐步搭建你的页面。</p><button className="button button-primary" onClick={() => setPanel('components')}><Plus size={15} />添加第一个组件</button></div>}
+            {(draft ? draft.pages.find(page => page.id === draftPageId) : activePage) ? <Renderer project={draft ?? project} pageId={(draft ? draft.pages.find(page => page.id === draftPageId) : activePage)!.id} editing={Boolean(!draft && mode === 'edit' && busy !== 'ai')} selectedNodeId={draft ? undefined : selectedId} motionReplay={motionReplay} onMove={moveComponent} onSelect={id => { if (!draft && mode === 'edit') { setSelectedId(id); if (rightTab === 'ai') setRightTab('properties'); } }} onNavigate={id => { if (draft) { if (draft.pages.some(page => page.id === id)) setDraftPageId(id); } else switchPage(id); }} /> : <div className="canvas-empty"><div className="canvas-empty-icon"><Frame size={22} /></div><h2>从一张空白画布开始</h2><p>添加组件，逐步搭建你的页面。</p><button className="button button-primary" onClick={openComponents}><Plus size={15} />添加第一个组件</button></div>}
             {draft && <div className="draft-ribbon"><Sparkles size={13} />AI 草稿预览</div>}
             {draft && <div className="draft-actions">{draft.pages.length > 1 && <select aria-label="预览草稿页面" value={draftPageId} onChange={event => setDraftPageId(event.target.value)}>{draft.pages.map(page => <option value={page.id} key={page.id}>{page.name}</option>)}</select>}<button className="button button-subtle" onClick={() => { setDraft(undefined); setDraftPageId(undefined); showNotice('已放弃 AI 草稿', 'info'); }}>放弃草稿</button><button className="button button-primary" onClick={() => { setHistory(items => [...items.slice(-39), project]); setFuture([]); setProject(draft); setActivePageId(draft.pages.some(page => page.id === draftPageId) ? draftPageId! : draft.pages[0].id); setSelectedId(undefined); setDraft(undefined); setDraftPageId(undefined); setPrompt(''); showNotice('AI 草稿已应用，可随时撤销'); }}><Check size={14} />应用修改</button></div>}
           </DevicePreview>
         </div>
-        <div className="canvas-bottom"><span>页面结构</span><span className="structure-count">{flatten(activePage?.nodes ?? []).length} 个组件</span>{selectedNode && <><span className="canvas-divider" /><span className="selection-path">{typeLabels[selectedNode.type]} <ChevronRight size={12} /> {nodeLabel(selectedNode)}</span></>}</div>
+        <div className="canvas-bottom">{selectedNode && mode === 'edit' ? <><span className="selection-path"><Move size={13} />{typeLabels[selectedNode.type]}</span><span className="structure-count">X {selectedNode.props.offsetX ?? 0} · Y {selectedNode.props.offsetY ?? 0}</span><button title="复制组件 Ctrl+D" aria-label="复制组件" onClick={copySelected}><Copy size={14} /></button><button title="复位位置" aria-label="复位位置" onClick={() => moveComponent(selectedNode.id, { x: 0, y: 0 })}><RotateCcw size={14} /></button><button title="删除组件 Delete" aria-label="删除选中组件" onClick={deleteSelected}><Trash2 size={14} /></button><span className="canvas-hint">拖动移动 · 方向键微调 · Shift 加速</span></> : <><span className="structure-count">{flatten(activePage?.nodes ?? []).length} 个组件</span><span className="canvas-hint">{mode === 'edit' ? '点击选择组件，拖动调整位置' : '点击组件体验交互，切回编辑继续设计'}</span></>}</div>
       </section>
 
       <aside className={`right-panel ${mobilePanel === 'right' ? 'mobile-visible' : ''}`}>
-        <div className="right-tabs"><button className={`right-tab ${rightTab === 'properties' ? 'active' : ''}`} onClick={() => setRightTab('properties')}><Settings2 size={15} />属性</button><button className={`right-tab ${rightTab === 'ai' ? 'active' : ''}`} onClick={() => { setRightTab('ai'); window.setTimeout(() => document.getElementById('ai-prompt')?.focus(), 0); }}><Sparkles size={15} />AI 助手</button><button className="mobile-back" onClick={() => setMobilePanel('canvas')}>返回画布</button></div>
-        <div className={`right-content ${rightTab === 'ai' ? 'ai-focus' : ''}`}>
+        <div className="right-tabs"><button className={`right-tab ${rightTab === 'properties' ? 'active' : ''}`} onClick={() => setRightTab('properties')}><Settings2 size={15} />属性</button><button className={`right-tab ${rightTab === 'motion' ? 'active' : ''}`} onClick={() => setRightTab('motion')}><WandSparkles size={15} />动效</button><button className={`right-tab ${rightTab === 'ai' ? 'active' : ''}`} onClick={() => { setRightTab('ai'); window.setTimeout(() => document.getElementById('ai-prompt')?.focus(), 0); }}><Sparkles size={15} />AI</button><button className="mobile-back" onClick={() => setMobilePanel('canvas')}>返回画布</button></div>
+        <div className={`right-content ${rightTab === 'ai' ? 'ai-focus' : ''} ${rightTab === 'motion' ? 'motion-focus' : ''}`}>
           <section className="inspector-section tree-section">
             <div className="section-title-row"><div><span className="eyebrow">STRUCTURE</span><h2>图层</h2></div><span className="section-count">{tree.length}</span></div>
-            {!activePage?.nodes.length ? <div className="tree-empty"><Layers2 size={17} /><span>页面还是空的</span><button onClick={() => setPanel('components')}>添加组件</button></div> : <div className="layer-tree">{tree.map(({ node, depth }) => <div key={node.id} className={`layer-row ${node.id === selectedId ? 'selected' : ''}`} style={{ paddingLeft: 8 + depth * 16 }}>
+            {!activePage?.nodes.length ? <div className="tree-empty"><Layers2 size={17} /><span>页面还是空的</span><button onClick={openComponents}>添加组件</button></div> : <div className="layer-tree">{tree.map(({ node, depth }) => <div key={node.id} className={`layer-row ${node.id === selectedId ? 'selected' : ''}`} style={{ paddingLeft: 8 + depth * 16 }}>
               {node.children?.length ? <button className="tree-disclosure" onClick={() => setExpanded(value => ({ ...value, [node.id]: value[node.id] === false }))}>{expanded[node.id] === false ? <ChevronRight size={13} /> : <ChevronDown size={13} />}</button> : <span className="tree-spacer" />}
-              <button className="layer-select" onClick={() => { setSelectedId(node.id); setMode('edit'); }}><span className="layer-icon">{nodeIcon(node.type)}</span><span className="layer-name">{nodeLabel(node)}</span><span className="layer-type">{node.type}</span></button>
+              <button className="layer-select" onClick={() => { setSelectedId(node.id); setRevealId(node.id); setMode('edit'); }}><span className="layer-icon">{nodeIcon(node.type)}</span><span className="layer-name">{nodeLabel(node)}</span><span className="layer-type">{node.type}</span></button>
               {node.id === selectedId && <span className="layer-selected-dot" />}
             </div>)}</div>}
           </section>
           <section className="inspector-section properties-section">
-            <div className="section-title-row"><div><span className="eyebrow">PROPERTIES</span><h2>{selectedNode ? nodeLabel(selectedNode) : '属性面板'}</h2></div>{selectedNode && <button className="icon-button small" title="删除组件" onClick={() => { patchPage({ nodes: removeNode(activePage!.nodes, selectedNode.id) }); setSelectedId(undefined); showNotice('组件已删除', 'info'); }}><Trash2 size={15} /></button>}</div>
-            {!selectedNode ? <div className="inspector-empty"><div className="empty-spark"><Settings2 size={18} /></div><strong>选择一个组件</strong><p>在画布或图层中选择组件后，可在这里编辑内容、样式和交互。</p><button onClick={() => setPanel('components')}><Plus size={14} />添加组件</button></div> : <>
-              <div className="property-group"><h3>内容</h3>
-                {(['text', 'title', 'label', 'placeholder', 'value', 'description', 'caption', 'subtitle', 'items', 'alt', 'tag', 'days'] as const).map(key => {
+            <div className="section-title-row"><div><span className="eyebrow">PROPERTIES</span><h2>{selectedNode ? nodeLabel(selectedNode) : '属性面板'}</h2></div>{selectedNode && <button className="icon-button small" title="复制组件" onClick={copySelected}><Copy size={15} /></button>}</div>
+            {!selectedNode ? <div className="inspector-empty"><div className="empty-spark"><Settings2 size={18} /></div><strong>选择一个组件</strong><p>在画布或图层中选择组件后，可在这里编辑内容、样式和交互。</p><button onClick={openComponents}><Plus size={14} />添加组件</button></div> : <>
+              <div className="property-subtabs" role="tablist" aria-label="属性分类">{(['content', 'layout', 'action'] as const).map(tab => <button key={tab} role="tab" aria-selected={propertyTab === tab} className={propertyTab === tab ? 'active' : ''} onClick={() => setPropertyTab(tab)}>{{content:'内容',layout:'位置与样式',action:'交互'}[tab]}</button>)}</div>
+              <div className="property-group" hidden={propertyTab !== 'content'}><h3>内容</h3>
+                {(Object.keys(contentLabels) as (keyof typeof contentLabels)[]).map(key => {
                   const value = selectedNode.props[key];
                   if (value === undefined && primaryContent[selectedNode.type] !== key) return null;
                   const multiline = ['text', 'description', 'subtitle'].includes(key);
-                  const onChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => updateSelected({ props: { ...selectedNode.props, [key]: typeof value === 'number' ? Number(event.target.value) : event.target.value } });
-                  return <label className={`field-row${multiline ? ' multiline-field' : ''}`} key={key}><span>{({ text: '文案', title: '标题', label: '标签', placeholder: '占位提示', value: '显示值', description: '说明', caption: '辅助文案', subtitle: '副标题', items: '选项', alt: '图片说明', tag: '分类', days: '连续天数' } as const)[key]}</span>{multiline ? <textarea value={String(value ?? '')} onChange={onChange} placeholder="输入内容" rows={2} /> : <input type={typeof value === 'number' ? 'number' : 'text'} value={String(value ?? '')} onChange={onChange} placeholder="输入内容" />}</label>;
+                  const onChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => updateSelected({ props: { ...selectedNode.props, [key]: typeof value === 'number' ? Number(event.target.value) : event.target.value } }, `prop-${selectedId}-${key}`);
+                  return <label className={`field-row${multiline ? ' multiline-field' : ''}`} key={key}><span>{contentLabels[key]}</span>{multiline ? <textarea aria-label={contentLabels[key]} value={String(value ?? '')} onChange={onChange} placeholder="输入内容" rows={2} /> : <input aria-label={contentLabels[key]} type={typeof value === 'number' ? 'number' : 'text'} value={String(value ?? '')} onChange={onChange} placeholder="输入内容" />}</label>;
                 })}
+                {(['accordion', 'alert'].includes(selectedNode.type)) && <label className="field-row toggle-property"><span>{selectedNode.type === 'accordion' ? '默认展开' : '允许关闭'}</span><input aria-label={selectedNode.type === 'accordion' ? '默认展开' : '允许关闭'} type="checkbox" checked={Boolean(selectedNode.props[selectedNode.type === 'accordion' ? 'open' : 'dismissible'])} onChange={event => updateSelected({ props: { ...selectedNode.props, [selectedNode.type === 'accordion' ? 'open' : 'dismissible']: event.target.checked } })} /></label>}
                 {selectedNode.type === 'image' && <div className="image-property"><label className="field-row"><span>图片地址</span><input value={String(selectedNode.props.src ?? '')} onChange={event => updateSelected({ props: { ...selectedNode.props, src: event.target.value } })} placeholder="粘贴图片链接" /></label><button className="button button-subtle image-pick" onClick={chooseImage}><ImagePlus size={14} />从本地选择</button><input ref={fileRef} type="file" accept="image/*" hidden onChange={event => readImage(event.target.files?.[0])} /></div>}
-                {['select', 'tabs'].includes(selectedNode.type) && selectedNode.props.items === undefined && <label className="field-row"><span>选项</span><input value={String(selectedNode.props.options ?? '')} onChange={event => updateSelected({ props: { ...selectedNode.props, options: event.target.value } })} placeholder="用逗号分隔" /></label>}
                 {['checkbox', 'switch', 'task', 'habit'].includes(selectedNode.type) && <label className="field-row toggle-property"><span>初始状态</span><input type="checkbox" checked={Boolean(selectedNode.props.checked ?? false)} onChange={event => updateSelected({ props: { ...selectedNode.props, checked: event.target.checked } })} /><span>{selectedNode.props.checked ? '开启' : '关闭'}</span></label>}
                 {['input', 'textarea'].includes(selectedNode.type) && <label className="field-row toggle-property"><span>必填字段</span><input type="checkbox" checked={Boolean(selectedNode.props.required ?? false)} onChange={event => updateSelected({ props: { ...selectedNode.props, required: event.target.checked } })} /><span>{selectedNode.props.required ? '是' : '否'}</span></label>}
                 {selectedNode.type === 'navbar' && <label className="field-row toggle-property"><span>显示返回键</span><input type="checkbox" checked={Boolean(selectedNode.props.back ?? false)} onChange={event => updateSelected({ props: { ...selectedNode.props, back: event.target.checked } })} /><span>{selectedNode.props.back ? '显示' : '隐藏'}</span></label>}
               </div>
-              <div className="property-group"><div className="property-heading"><h3>布局与样式</h3><button className="text-button" onClick={() => updateSelected({ style: {} })}>恢复主题样式</button></div>
+              <div className="property-group" hidden={propertyTab !== 'layout'}><div className="property-heading"><h3>位置</h3><button className="text-button" onClick={() => moveComponent(selectedNode.id, { x: 0, y: 0 })}>复位</button></div><div className="position-fields">{(['offsetX', 'offsetY'] as const).map((axis, index) => <label key={axis}><span>{index === 0 ? 'X' : 'Y'}</span><input aria-label={index === 0 ? '水平偏移' : '垂直偏移'} type="number" min={-5000} max={5000} value={Number(selectedNode.props[axis] ?? 0)} onChange={event => updateSelected({ props: { ...selectedNode.props, [axis]: Math.max(-5000, Math.min(5000, Number(event.target.value))) } })} /><small>px</small></label>)}</div><p className="property-note">相对原布局的位置偏移。拖动调整位置；图层排序调整排列顺序。</p><div className="property-heading"><h3>布局与样式</h3><button className="text-button" onClick={() => updateSelected({ style: {} })}>恢复主题</button></div>
                 <label className="field-row"><span>宽度</span><select value={String(selectedNode.style.width ?? 'auto')} onChange={event => updateSelected({ style: { ...selectedNode.style, width: event.target.value } })}><option value="auto">自动</option><option value="100%">填满</option><option value="50%">一半</option><option value="fit-content">适应内容</option></select></label>
                 <div className="field-row"><span>内边距</span><div className="segmented">{(['0', '8', '12', '16', '24'] as const).map(value => <button key={value} className={String(selectedNode.style.padding ?? '') === value ? 'active' : ''} onClick={() => updateSelected({ style: { ...selectedNode.style, padding: Number(value) } })}>{value}</button>)}</div></div>
                 <div className="field-row"><span>圆角</span><div className="segmented">{(['0', '8', '12', '20'] as const).map(value => <button key={value} className={String(selectedNode.style.borderRadius ?? '') === value ? 'active' : ''} onClick={() => updateSelected({ style: { ...selectedNode.style, borderRadius: Number(value) } })}>{value}</button>)}</div></div>
@@ -455,11 +511,27 @@ export default function App() {
                 <div className="field-row color-row"><span>文字颜色</span><label className="color-control"><input type="color" value={String(selectedNode.style.color ?? '#39362f')} onChange={event => updateSelected({ style: { ...selectedNode.style, color: event.target.value } })} /><code>{String(selectedNode.style.color ?? '默认')}</code></label></div>
                 <div className="field-row color-row"><span>背景颜色</span><label className="color-control"><input type="color" value={String(selectedNode.style.background ?? '#faf8f4')} onChange={event => updateSelected({ style: { ...selectedNode.style, background: event.target.value } })} /><code>{String(selectedNode.style.background ?? '默认')}</code></label></div>
               </div>
-              <div className="property-group"><div className="property-heading-actions"><h3>动作</h3><span className="mock-badge">本地模拟</span></div>
+              <div className="property-group" hidden={propertyTab !== 'action'}><div className="property-heading-actions"><h3>动作</h3><span className="mock-badge">本地模拟</span></div>
                 <label className="field-row"><span>触发行为</span><select value={selectedAction?.type ?? 'none'} onChange={event => { const type = event.target.value; if (type === 'none') updateSelected({ action: undefined }); else if (type === 'navigate') { const target = project.pages.find(page => page.id !== activePage?.id); if (!target) { showNotice('请先创建另一个页面，再设置跳转', 'info'); return; } setAction({ type, target: target.id }); } else setAction({ type: type as Action['type'], target: undefined }); }}><option value="none">无</option><option value="toast">提示消息</option><option value="navigate">跳转页面</option><option value="toggle">切换状态</option><option value="submit">提交表单</option><option value="dialog">打开对话框</option></select></label>
                 {selectedAction?.type === 'navigate' ? <label className="field-row"><span>目标页面</span><select value={selectedAction.target ?? ''} onChange={event => setAction({ target: event.target.value })}>{project.pages.filter(page => page.id !== activePage?.id).map(page => <option value={page.id} key={page.id}>{page.name}</option>)}</select></label> : selectedAction && <label className="field-row"><span>{selectedAction.type === 'toggle' ? '状态名称' : '提示内容'}</span><input value={selectedAction.message ?? ''} onChange={event => setAction({ message: event.target.value })} placeholder="操作完成" /></label>}
               </div>
               <div className="node-tools"><span>图层排序</span><button title="上移一层" aria-label="上移一层" onClick={() => patchPage({ nodes: moveNode(activePage!.nodes, selectedNode.id, -1) })}><ArrowUp size={14} /></button><button title="下移一层" aria-label="下移一层" onClick={() => patchPage({ nodes: moveNode(activePage!.nodes, selectedNode.id, 1) })}><ArrowDown size={14} /></button><button title="嵌套到上方容器" onClick={() => { const index = tree.findIndex(item => item.node.id === selectedNode.id); const parent = tree.slice(0, index).reverse().find(item => ['stack', 'row', 'grid', 'card'].includes(item.node.type) && !containsNode(selectedNode, item.node.id))?.node; if (parent) { const withoutNode = removeNode(activePage!.nodes, selectedNode.id); patchPage({ nodes: insertNode(withoutNode, selectedNode, parent.id) }); showNotice(`已移入「${nodeLabel(parent)}」`); } else showNotice('上方没有可用的布局容器', 'info'); }}><GripVertical size={14} />移入容器</button></div>
+            </>}
+          </section>
+          <section className="inspector-section motion-section">
+            <div className="section-title-row"><div><span className="eyebrow">MOTION</span><h2>让页面有节奏</h2></div><WandSparkles size={18} /></div>
+            {!selectedNode ? <div className="inspector-empty"><div className="empty-spark"><WandSparkles size={18} /></div><strong>为组件添加动效</strong><p>先在画布中选择组件，然后挑选动效。预览时会自动播放。</p></div> : <>
+              <p className="motion-selection">正在编辑 <strong>{typeLabels[selectedNode.type]}</strong></p>
+              <div className="motion-grid">{motionPresets.map(preset => <button key={preset.id} className={`motion-tile ${String(selectedNode.props.animation ?? 'none') === preset.id ? 'active' : ''}`} aria-pressed={String(selectedNode.props.animation ?? 'none') === preset.id} onClick={() => updateSelected({ props: { ...selectedNode.props, animation: preset.id } })}><span className={`motion-glyph motion-glyph-${preset.group}`}><WandSparkles size={15} /></span><strong>{preset.label}</strong></button>)}</div>
+              {String(selectedNode.props.animation ?? 'none') !== 'none' && <div className="motion-settings">
+                <label className="field-row"><span>时长</span><div className="range-field"><input aria-label="动效时长" type="range" min={100} max={3000} step={100} value={Number(selectedNode.props.animationDuration ?? 600)} onChange={event => updateSelected({ props: { ...selectedNode.props, animationDuration: Number(event.target.value) } })} /><output>{Number(selectedNode.props.animationDuration ?? 600) / 1000}s</output></div></label>
+                <label className="field-row"><span>延迟</span><div className="range-field"><input aria-label="动效延迟" type="range" min={0} max={3000} step={100} value={Number(selectedNode.props.animationDelay ?? 0)} onChange={event => updateSelected({ props: { ...selectedNode.props, animationDelay: Number(event.target.value) } })} /><output>{Number(selectedNode.props.animationDelay ?? 0) / 1000}s</output></div></label>
+                <label className="field-row"><span>触发方式</span><select value={String(selectedNode.props.animationTrigger ?? 'enter')} onChange={event => updateSelected({ props: { ...selectedNode.props, animationTrigger: event.target.value } })}><option value="enter">页面进入</option><option value="hover">鼠标悬停 / 键盘聚焦</option></select></label>
+                <label className="field-row toggle-property"><span>循环播放</span><input aria-label="循环播放" type="checkbox" checked={Boolean(selectedNode.props.animationLoop ?? false)} onChange={event => updateSelected({ props: { ...selectedNode.props, animationLoop: event.target.checked } })} /></label>
+                <button className="button button-primary motion-replay" onClick={() => setMotionReplay(value => value + 1)}><Play size={14} />重播选中动效</button>
+              </div>}
+              <p className="property-note">编辑时保持静止，重播后可继续拖动。跟随系统的减少动态效果设置。</p>
+              <a className="motion-source" href="https://github.com/animate-css/animate.css" target="_blank" rel="noreferrer">动效参考 Animate.css ↗</a>
             </>}
           </section>
           <section className="ai-card">

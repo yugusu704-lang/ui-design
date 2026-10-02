@@ -1,0 +1,45 @@
+/* Independently authored motion presets; pattern reference: https://github.com/animate-css/animate.css (MIT). */
+.demo-node[data-animation='fade-in'] { --motion-name: atelier-fade; }
+.demo-node[data-animation='fade-up'] { --motion-name: atelier-up; }
+.demo-node[data-animation='fade-down'] { --motion-name: atelier-down; }
+.demo-node[data-animation='slide-left'] { --motion-name: atelier-left; }
+.demo-node[data-animation='slide-right'] { --motion-name: atelier-right; }
+.demo-node[data-animation='zoom-in'] { --motion-name: atelier-zoom; }
+.demo-node[data-animation='zoom-out'] { --motion-name: atelier-shrink; }
+.demo-node[data-animation='pop'] { --motion-name: atelier-pop; }
+.demo-node[data-animation='bounce'] { --motion-name: atelier-bounce; }
+.demo-node[data-animation='pulse'] { --motion-name: atelier-pulse; }
+.demo-node[data-animation='shake'] { --motion-name: atelier-shake; }
+.demo-node[data-animation='swing'] { --motion-name: atelier-swing; }
+.demo-node[data-animation='flip-x'] { --motion-name: atelier-flip-x; }
+.demo-node[data-animation='flip-y'] { --motion-name: atelier-flip-y; }
+.demo-node[data-animation='rotate-in'] { --motion-name: atelier-rotate; }
+.demo-node[data-animation='blur-in'] { --motion-name: atelier-blur; }
+.demo-root .demo-node[data-motion-enabled='true']:not([data-animation='none'])[data-motion-trigger='enter'],
+.demo-root .demo-node[data-motion-enabled='true']:not([data-animation='none'])[data-motion-trigger='hover']:is(:hover, :focus-within) {
+  animation-name: var(--motion-name, none);
+  animation-duration: var(--motion-duration, 600ms);
+  animation-delay: var(--motion-delay, 0ms);
+  animation-iteration-count: var(--motion-iterations, 1);
+  animation-timing-function: cubic-bezier(.22, .7, .2, 1);
+  animation-fill-mode: backwards;
+}
+@keyframes atelier-fade { from { opacity: 0; } }
+@keyframes atelier-up { from { opacity: 0; transform: translateY(24px); } }
+@keyframes atelier-down { from { opacity: 0; transform: translateY(-24px); } }
+@keyframes atelier-left { from { opacity: 0; transform: translateX(-28px); } }
+@keyframes atelier-right { from { opacity: 0; transform: translateX(28px); } }
+@keyframes atelier-zoom { from { opacity: 0; transform: scale(.88); } }
+@keyframes atelier-shrink { from { opacity: 0; transform: scale(1.12); } }
+@keyframes atelier-pop { 0% { opacity: 0; transform: scale(.82); } 65% { transform: scale(1.04); } 85% { transform: scale(.99); } }
+@keyframes atelier-bounce { 30% { transform: translateY(-12px); } 55% { transform: translateY(0); } 75% { transform: translateY(-5px); } }
+@keyframes atelier-pulse { 50% { transform: scale(1.035); } }
+@keyframes atelier-shake { 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
+@keyframes atelier-swing { 25% { transform: rotate(4deg); } 55% { transform: rotate(-3deg); } 80% { transform: rotate(1deg); } }
+@keyframes atelier-flip-x { from { opacity: 0; transform: perspective(600px) rotateX(65deg); } }
+@keyframes atelier-flip-y { from { opacity: 0; transform: perspective(600px) rotateY(65deg); } }
+@keyframes atelier-rotate { from { opacity: 0; transform: rotate(-10deg) scale(.95); } }
+@keyframes atelier-blur { from { opacity: 0; filter: blur(8px); } }
+@media (prefers-reduced-motion: reduce) {
+  .demo-root .demo-node[data-motion-enabled] { animation: none !important; transition: none !important; }
+}

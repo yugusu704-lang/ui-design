@@ -1,5 +1,6 @@
 import type { Project, BuilderNode, ComponentType } from './types.ts';
-export const COMPONENT_TYPES: ComponentType[] = ['stack','row','grid','card','divider','text','image','avatar','badge','button','input','textarea','checkbox','switch','select','progress','stat','task','habit','navbar','tabs','empty'];
+import { validateMotion } from './motion.ts';
+export const COMPONENT_TYPES: ComponentType[] = ['stack','row','grid','card','divider','text','image','avatar','badge','button','input','textarea','checkbox','switch','select','progress','stat','task','habit','navbar','tabs','empty','alert','accordion','slider','radio','rating','skeleton','segmented','breadcrumb','list','timeline','pricing','testimonial','search','bottomnav'];
 export const STYLE_KEYS = ['color','background','fontSize','fontWeight','padding','margin','borderRadius','gap','textAlign','alignItems','justifyContent','minHeight','width','height','opacity','gridTemplateColumns','flexDirection'];
 export function validateProject(value: unknown): Project {
   const p = structuredClone(value) as Project;
@@ -15,6 +16,8 @@ export function validateProject(value: unknown): Project {
       if(++count>1200||!n||!str(n.id,100)||!n.id||ids.has(n.id)||!COMPONENT_TYPES.includes(n.type))fail('组件类型、编号或数量无效');ids.add(n.id);
       if(Object.keys(n).some(key=>!['id','type','props','style','children','action'].includes(key)))fail('组件包含不受支持的字段');
       if(!n.props||Array.isArray(n.props)||typeof n.props!=='object'||!n.style||Array.isArray(n.style)||typeof n.style!=='object')fail('组件属性格式无效');
+      for(const key of ['offsetX','offsetY']) if(n.props[key]!==undefined && (typeof n.props[key]!=='number'||!Number.isFinite(n.props[key])||Math.abs(n.props[key] as number)>5000))fail('位置偏移必须是 -5000 到 5000 的数值');
+      validateMotion(n.props);
       for(const [key,v] of Object.entries(n.props)){
         if(key.startsWith('on')||['__proto__','constructor','prototype','dangerouslySetInnerHTML'].includes(key)||key.length>80||!['string','number','boolean'].includes(typeof v)||typeof v==='number'&&!Number.isFinite(v)||typeof v==='string'&&!str(v,key==='src'?2_000_000:20000))fail('组件属性不受支持');
         if(key==='src'&&typeof v==='string'&&v&&!/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(v)&&!/^https?:\/\//.test(v))fail('图片必须为HTTP地址或本地图片');
@@ -40,7 +43,23 @@ export function createNode(type:ComponentType):BuilderNode {
   const defaults:Partial<Record<ComponentType,Record<string,string|number|boolean>>> = {
     text:{text:'把今天，过得更有条理。',variant:'body'},button:{label:'继续',variant:'primary'},input:{label:'任务名称',placeholder:'想完成什么？',required:true,name:'title'},textarea:{label:'备注',placeholder:'写下更多细节',name:'notes'},image:{src:'',alt:'图片',caption:'选择本地图片'},avatar:{text:'林'},badge:{text:'进行中'},checkbox:{label:'每天提醒',checked:false},switch:{label:'开启通知',checked:true},select:{label:'优先级',options:'普通,重要,紧急',name:'priority'},progress:{value:65,label:'本周完成'},stat:{value:'12',label:'已完成任务'},task:{title:'读书 20 分钟',description:'让注意力回到自己',checked:false},habit:{title:'晨间散步',description:'连续坚持 7 天',checked:false},navbar:{title:'页面标题',back:false},tabs:{options:'全部,进行中,已完成'},empty:{title:'留一点空间给新的计划',description:'创建你的第一个任务'},stack:{},row:{},grid:{},card:{},divider:{}
   };
-  return {id:crypto.randomUUID(),type,props:defaults[type]||props,style:['stack','row','grid'].includes(type)?{gap:12}:['card'].includes(type)?{padding:18}: {},...(['stack','row','grid','card'].includes(type)?{children:[]}:{})};
+  const extended:Partial<Record<ComponentType,BuilderNode['props']>> = {
+    alert:{title:'已为你保存进展',description:'每一次完成，都让目标更近一点。',dismissible:true},
+    accordion:{title:'如何开始记录习惯？',description:'选择一个容易完成的小目标，在固定时间记录。慢慢建立自己的节奏。',open:false},
+    slider:{label:'每日专注时间',value:30,min:0,max:120,step:5,unit:'分钟'},
+    radio:{label:'提醒频率',options:'每天|工作日|周末',value:'每天'},
+    rating:{label:'今天感觉如何？',value:4,max:5},
+    skeleton:{label:'内容正在加载',rows:3},
+    segmented:{label:'时间范围',options:'本周|本月|全年',value:'本周'},
+    breadcrumb:{label:'当前位置',items:'首页|计划|今日'},
+    list:{title:'值得留意的小事',items:'为自己留出十分钟|记录一个新的想法|完成一件小事'},
+    timeline:{title:'今天的节奏',items:'09:00 · 晨间阅读|12:00 · 休息一下|18:00 · 回顾今天'},
+    pricing:{title:'专注计划',description:'为长期习惯留一份空间',price:'¥ 18',period:'/ 月',features:'无限习惯记录|每周进展回顾|专属主题',label:'选择这个计划'},
+    testimonial:{quote:'把每天的小事记录下来，才发现自己已经走了很远。',author:'林予',role:'坚持记录 128 天',value:5},
+    search:{label:'搜索',placeholder:'搜索计划或习惯',value:''},
+    bottomnav:{label:'主导航',options:'今日|计划|我的',value:'今日'},
+  };
+  return {id:crypto.randomUUID(),type,props:extended[type]||defaults[type]||props,style:['stack','row','grid'].includes(type)?{gap:12}:['card'].includes(type)?{padding:18}: {},...(['stack','row','grid','card'].includes(type)?{children:[]}:{})};
 }
 const node=(id:string,type:ComponentType,props:BuilderNode['props']={},style:BuilderNode['style']={},children?:BuilderNode[],action?:BuilderNode['action']):BuilderNode=>({id,type,props,style,...(children?{children}:{}),...(action?{action}:{})});
 export const seedProject:Project={version:1,id:'first-project',name:'日日 · 任务与习惯',theme:'editorial',pages:[

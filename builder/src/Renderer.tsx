@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { BuilderNode, Project } from '../shared/types';
+import { readNodePosition } from '../shared/position';
+import { readMotion, motionStyle } from '../shared/motion';
+import { useCanvasDrag } from './useCanvasDrag';
+import { ExtendedNode } from './ExtendedNode';
 if (typeof document !== 'undefined' && !document.querySelector('link[data-demo-runtime]')) {
   const stylesheet = document.createElement('link');
   stylesheet.rel = 'stylesheet';
@@ -15,6 +19,8 @@ export interface RendererProps {
   selectedNodeId?: string;
   onSelect?: (id: string) => void;
   onNavigate?: (id: string) => void;
+  onMove?: (id: string, position: { x: number; y: number }) => void;
+  motionReplay?: number;
 }
 
 type Values = Record<string, string | boolean>;
@@ -65,7 +71,7 @@ export function requiredFieldError(nodes: BuilderNode[], values: Values, pageId:
   return missing ? textProp(missing, 'label', 'placeholder') : undefined;
 }
 
-export function Renderer({ project, pageId, editing, selectedNodeId, onSelect, onNavigate }: RendererProps) {
+export function Renderer({ project, pageId, editing, selectedNodeId, onSelect, onNavigate, onMove, motionReplay = 0 }: RendererProps) {
   const page = project.pages.find((item) => item.id === pageId);
   const [values, setValues] = useState<Values>({});
   const [completed, setCompleted] = useState<Record<string, boolean>>({});
@@ -73,6 +79,14 @@ export function Renderer({ project, pageId, editing, selectedNodeId, onSelect, o
   const [tasks, setTasks] = useState<StoredTask[]>([]);
   const [toast, setToast] = useState('');
   const [dialog, setDialog] = useState('');
+  const drag = useCanvasDrag({ enabled: editing && Boolean(onMove), pageId, onSelect, onMove });
+  const lastReplay = useRef(motionReplay);
+  const [replay, setReplay] = useState<{ id: string; token: number; active: boolean }>();
+  useEffect(() => {
+    if (motionReplay === lastReplay.current) return;
+    lastReplay.current = motionReplay;
+    if (selectedNodeId) setReplay({ id: selectedNodeId, token: motionReplay, active: true });
+  }, [motionReplay, selectedNodeId]);
 
   const showToast = (message: string) => {
     setToast(message || '已完成');
@@ -127,23 +141,32 @@ export function Renderer({ project, pageId, editing, selectedNodeId, onSelect, o
   };
 
   const renderNode = (node: BuilderNode, path: string): React.ReactNode => {
-    const key = `${pageId}/${path}/${node.id}`;
+    const key = `${pageId}/${node.id}`;
     const selected = selectedNodeId === node.id;
     const childNodes = childrenOf(node);
     const label = textProp(node, 'label', 'title', 'text', 'name');
     const content = (className = '') => <span className={className}>{label || textProp(node, 'value', 'caption')}</span>;
-    const kids = () => childNodes.map((child, index) => <React.Fragment key={`${key}/${index}/${child.id}`}>{renderNode(child, `${path}/${index}`)}</React.Fragment>);
+    const kids = () => childNodes.map((child, index) => <React.Fragment key={`${pageId}/${child.id}`}>{renderNode(child, `${path}/${index}`)}</React.Fragment>);
     const handleClick = (event: React.MouseEvent) => {
       if (editing) {
         event.preventDefault(); event.stopPropagation(); onSelect?.(node.id);
       }
     };
+    const position = readNodePosition(node.props);
+    const motion = readMotion(node.props);
+    const isReplaying = editing && replay?.id === node.id && replay.active && selected;
+    const nodeKey = editing && replay?.id === node.id ? `${key}/replay-${replay.token}` : key;
     const common = {
-      key,
       className: `demo-node demo-${node.type}${textProp(node, 'variant') ? ` variant-${textProp(node, 'variant')}` : ''}${editing ? ' is-editing' : ''}${selected ? ' is-selected' : ''}`,
-      style: nodeStyle(node.style),
+      style: { ...nodeStyle(node.style), ...motionStyle(motion), ...(isReplaying ? { '--motion-iterations': '1' } : {}), position: 'relative' as const, left: position.x, top: position.y },
       onClick: (event: React.MouseEvent) => { handleClick(event); if (!editing && node.action && !['button', 'tabs', 'switch', 'task', 'habit', 'navbar'].includes(node.type)) runAction(node); },
       'data-node-id': node.id,
+      'data-offset-x': position.x,
+      'data-offset-y': position.y,
+      'data-animation': motion.preset,
+      'data-motion-trigger': isReplaying ? 'enter' : motion.trigger,
+      'data-motion-enabled': !editing || isReplaying ? 'true' : 'false',
+      onAnimationEnd: () => { if (isReplaying) setReplay(value => value ? { ...value, active: false } : value); },
     };
     const act = (event: React.MouseEvent) => { event.stopPropagation(); if (!editing) runAction(node); };
     const stored = values[`${pageId}/${node.id}`];
@@ -152,62 +175,63 @@ export function Renderer({ project, pageId, editing, selectedNodeId, onSelect, o
     const isComplete = completed[completeKey] ?? boolProp(node, 'complete', 'completed', 'checked');
 
     switch (node.type) {
-      case 'stack': return <div {...common}>{kids()}</div>;
-      case 'row': return <div {...common}>{kids()}</div>;
-      case 'grid': return <div {...common}>{kids()}</div>;
-      case 'card': return <section {...common}>{label && <h3 className="demo-card-title">{label}</h3>}{kids()}</section>;
-      case 'divider': return <hr {...common} aria-label={label || 'Divider'} />;
+      case 'stack': return <div key={nodeKey} {...common}>{kids()}</div>;
+      case 'row': return <div key={nodeKey} {...common}>{kids()}</div>;
+      case 'grid': return <div key={nodeKey} {...common}>{kids()}</div>;
+      case 'card': return <section key={nodeKey} {...common}>{label && <h3 className="demo-card-title">{label}</h3>}{kids()}</section>;
+      case 'divider': return <hr key={nodeKey} {...common} aria-label={label || 'Divider'} />;
       case 'text': {
         const size = textProp(node, 'variant', 'size').toLowerCase();
         const Tag = size === 'title' || size === 'h1' || size === 'heading' ? 'h1' : size === 'subheading' || size === 'h2' ? 'h2' : size === 'caption' || size === 'eyebrow' ? 'small' : 'p';
-        return <Tag {...common} className={`${common.className}${['heading','subheading','body','eyebrow','muted','caption','title'].includes(size) ? ` demo-text-${size}` : ''}`}>{label || '文字'}</Tag>;
+        return <Tag key={nodeKey} {...common} className={`${common.className}${['heading','subheading','body','eyebrow','muted','caption','title'].includes(size) ? ` demo-text-${size}` : ''}`}>{label || '文字'}</Tag>;
       }
       case 'image': {
         const src = textProp(node, 'src', 'url');
-        return src ? <img {...common} src={src} alt={textProp(node, 'alt', 'label') || '图片预览'} /> : <div {...common} role="img" aria-label={textProp(node, 'alt', 'label') || '图片占位'}><span className="demo-image-mark">▧</span><span>{textProp(node, 'alt', 'label') || '图片'}</span></div>;
+        return src ? <img key={nodeKey} {...common} src={src} alt={textProp(node, 'alt', 'label') || '图片预览'} /> : <div key={nodeKey} {...common} role="img" aria-label={textProp(node, 'alt', 'label') || '图片占位'}><span className="demo-image-mark">▧</span><span>{textProp(node, 'alt', 'label') || '图片'}</span></div>;
       }
       case 'avatar': {
         const src = textProp(node, 'src', 'url');
-        return <span {...common} aria-label={label || 'Avatar'}>{src ? <img src={src} alt="" /> : (label || '?').trim().slice(0, 2).toUpperCase()}</span>;
+        return <span key={nodeKey} {...common} aria-label={label || 'Avatar'}>{src ? <img src={src} alt="" /> : (label || '?').trim().slice(0, 2).toUpperCase()}</span>;
       }
-      case 'badge': return <span {...common}>{label || '标签'}</span>;
-      case 'button': return <button {...common} type="button" aria-pressed={node.action?.type === 'toggle' ? isComplete : undefined} onClick={(event) => { handleClick(event); if (!editing) act(event); }}>{content()}{!label && '按钮'}</button>;
-      case 'input': return <label {...common}><span>{textProp(node, 'label') || textProp(node, 'placeholder') || '单行输入'}</span><input type={textProp(node, 'inputType', 'type') || 'text'} placeholder={textProp(node, 'placeholder')} value={String(stored ?? initialValue(node))} required={boolProp(node, 'required')} onChange={(event) => { if (!editing) updateValue(`${pageId}/${node.id}`, event.target.value); }} onClick={(event) => { if (editing) handleClick(event as unknown as React.MouseEvent); }} /></label>;
-      case 'textarea': return <label {...common}><span>{textProp(node, 'label') || textProp(node, 'placeholder') || '备注'}</span><textarea placeholder={textProp(node, 'placeholder')} value={String(stored ?? initialValue(node))} required={boolProp(node, 'required')} rows={Number(node.props?.rows) || 3} onChange={(event) => { if (!editing) updateValue(`${pageId}/${node.id}`, event.target.value); }} onClick={(event) => { if (editing) handleClick(event as unknown as React.MouseEvent); }} /></label>;
-      case 'checkbox': return <label {...common}><input type="checkbox" checked={check} onChange={(event) => { if (!editing) updateValue(`${pageId}/${node.id}`, event.target.checked); }} /><span>{label || '复选框'}</span></label>;
-      case 'switch': return <label {...common}><span>{label || '开关'}</span><button type="button" className={`demo-switch-control${check ? ' on' : ''}`} role="switch" aria-checked={check} onClick={(event) => { event.stopPropagation(); handleClick(event); if (!editing) updateValue(`${pageId}/${node.id}`, !check); }}><i /></button></label>;
+      case 'badge': return <span key={nodeKey} {...common}>{label || '标签'}</span>;
+      case 'button': return <button key={nodeKey} {...common} type="button" aria-pressed={node.action?.type === 'toggle' ? isComplete : undefined} onClick={(event) => { handleClick(event); if (!editing) act(event); }}>{content()}{!label && '按钮'}</button>;
+      case 'input': return <label key={nodeKey} {...common}><span>{textProp(node, 'label') || textProp(node, 'placeholder') || '单行输入'}</span><input type={textProp(node, 'inputType', 'type') || 'text'} placeholder={textProp(node, 'placeholder')} value={String(stored ?? initialValue(node))} required={boolProp(node, 'required')} onChange={(event) => { if (!editing) updateValue(`${pageId}/${node.id}`, event.target.value); }} onClick={(event) => { if (editing) handleClick(event as unknown as React.MouseEvent); }} /></label>;
+      case 'textarea': return <label key={nodeKey} {...common}><span>{textProp(node, 'label') || textProp(node, 'placeholder') || '备注'}</span><textarea placeholder={textProp(node, 'placeholder')} value={String(stored ?? initialValue(node))} required={boolProp(node, 'required')} rows={Number(node.props?.rows) || 3} onChange={(event) => { if (!editing) updateValue(`${pageId}/${node.id}`, event.target.value); }} onClick={(event) => { if (editing) handleClick(event as unknown as React.MouseEvent); }} /></label>;
+      case 'checkbox': return <label key={nodeKey} {...common}><input type="checkbox" checked={check} onChange={(event) => { if (!editing) updateValue(`${pageId}/${node.id}`, event.target.checked); }} /><span>{label || '复选框'}</span></label>;
+      case 'switch': return <label key={nodeKey} {...common}><span>{label || '开关'}</span><button type="button" className={`demo-switch-control${check ? ' on' : ''}`} role="switch" aria-checked={check} onClick={(event) => { event.stopPropagation(); handleClick(event); if (!editing) updateValue(`${pageId}/${node.id}`, !check); }}><i /></button></label>;
       case 'select': {
         const options = textProp(node, 'options').split(/[|,]/).map((option) => option.trim()).filter(Boolean);
-        return <label {...common}><span>{textProp(node, 'label') || '选择一项'}</span><select value={String(stored ?? textProp(node, 'value') ?? options[0] ?? '')} onChange={(event) => { if (!editing) updateValue(`${pageId}/${node.id}`, event.target.value); }}>{options.map((option) => <option key={option}>{option}</option>)}</select></label>;
+        return <label key={nodeKey} {...common}><span>{textProp(node, 'label') || '选择一项'}</span><select value={String(stored ?? textProp(node, 'value') ?? options[0] ?? '')} onChange={(event) => { if (!editing) updateValue(`${pageId}/${node.id}`, event.target.value); }}>{options.map((option) => <option key={option}>{option}</option>)}</select></label>;
       }
-      case 'progress': { const value = Math.min(100, Math.max(0, Number(node.props?.value) || 0)); return <div {...common}><div className="demo-progress-label"><span>{label || '进度'}</span><strong>{value}%</strong></div><div className="demo-progress-track"><i style={{ width: `${value}%` }} /></div></div>; }
-      case 'stat': return <div {...common}><span>{label || '数据'}</span><strong>{textProp(node, 'value', 'amount') || '0'}</strong>{textProp(node, 'caption', 'change') && <small>{textProp(node, 'caption', 'change')}</small>}</div>;
+      case 'progress': { const value = Math.min(100, Math.max(0, Number(node.props?.value) || 0)); return <div key={nodeKey} {...common}><div className="demo-progress-label"><span>{label || '进度'}</span><strong>{value}%</strong></div><div className="demo-progress-track"><i style={{ width: `${value}%` }} /></div></div>; }
+      case 'stat': return <div key={nodeKey} {...common}><span>{label || '数据'}</span><strong>{textProp(node, 'value', 'amount') || '0'}</strong>{textProp(node, 'caption', 'change') && <small>{textProp(node, 'caption', 'change')}</small>}</div>;
       case 'task': {
         const title = label || '一件重要的小事';
         if ((taskFilter.includes('完成') && !taskFilter.includes('进行') && !isComplete) || ((taskFilter.includes('进行') || taskFilter.includes('active') || taskFilter.includes('progress')) && isComplete)) return null;
-        return <article {...common} onClick={(event) => { handleClick(event); if (!editing && node.action) runAction(node); }}><button type="button" className={`demo-task-check${isComplete ? ' checked' : ''}`} aria-label={isComplete ? '标记为未完成' : '标记为已完成'} onClick={(event) => { event.stopPropagation(); handleClick(event); if (!editing) setCompleted((current) => ({ ...current, [completeKey]: !isComplete })); }}>{isComplete ? '✓' : ''}</button><div className={`demo-task-copy${isComplete ? ' complete' : ''}`}><strong>{title}</strong><span>{textProp(node, 'subtitle', 'description', 'time') || '今天 · 个人'}</span></div>{textProp(node, 'tag', 'category') && <span className="demo-task-tag">{textProp(node, 'tag', 'category')}</span>}</article>;
+        return <article key={nodeKey} {...common} onClick={(event) => { handleClick(event); if (!editing && node.action) runAction(node); }}><button type="button" className={`demo-task-check${isComplete ? ' checked' : ''}`} aria-label={isComplete ? '标记为未完成' : '标记为已完成'} onClick={(event) => { event.stopPropagation(); handleClick(event); if (!editing) setCompleted((current) => ({ ...current, [completeKey]: !isComplete })); }}>{isComplete ? '✓' : ''}</button><div className={`demo-task-copy${isComplete ? ' complete' : ''}`}><strong>{title}</strong><span>{textProp(node, 'subtitle', 'description', 'time') || '今天 · 个人'}</span></div>{textProp(node, 'tag', 'category') && <span className="demo-task-tag">{textProp(node, 'tag', 'category')}</span>}</article>;
       }
       case 'habit': {
         const days = textProp(node, 'days', 'streak') || '3';
-        return <article {...common}><div className="demo-habit-icon">✦</div><div className="demo-task-copy"><strong>{label || '每日习惯'}</strong><span>{textProp(node, 'subtitle', 'description') || `已连续坚持 ${days} 天`}</span></div><button className={`demo-habit-check${isComplete ? ' checked' : ''}`} type="button" aria-label="标记习惯完成" onClick={(event) => { event.stopPropagation(); handleClick(event); if (!editing) setCompleted((current) => ({ ...current, [completeKey]: !isComplete })); }}>{isComplete ? '✓' : '+'}</button></article>;
+        return <article key={nodeKey} {...common}><div className="demo-habit-icon">✦</div><div className="demo-task-copy"><strong>{label || '每日习惯'}</strong><span>{textProp(node, 'subtitle', 'description') || `已连续坚持 ${days} 天`}</span></div><button className={`demo-habit-check${isComplete ? ' checked' : ''}`} type="button" aria-label="标记习惯完成" onClick={(event) => { event.stopPropagation(); handleClick(event); if (!editing) setCompleted((current) => ({ ...current, [completeKey]: !isComplete })); }}>{isComplete ? '✓' : '+'}</button></article>;
       }
       case 'navbar': {
         const title = textProp(node, 'title', 'brand', 'label') || '页面标题';
-        return <nav {...common} aria-label={title}>{childNodes.length ? kids() : <><span className="demo-navbar-leading">{boolProp(node, 'back') ? <button type="button" aria-label="返回上一页" onClick={(event) => { handleClick(event); if (!editing) runAction(node); }}>‹</button> : null}</span><strong className="demo-navbar-title">{title}</strong><span className="demo-navbar-trailing" /></>}</nav>;
+        return <nav key={nodeKey} {...common} aria-label={title}>{childNodes.length ? kids() : <><span className="demo-navbar-leading">{boolProp(node, 'back') ? <button type="button" aria-label="返回上一页" onClick={(event) => { handleClick(event); if (!editing) runAction(node); }}>‹</button> : null}</span><strong className="demo-navbar-title">{title}</strong><span className="demo-navbar-trailing" /></>}</nav>;
       }
       case 'tabs': {
         const labels = childNodes.length ? childNodes.map((child) => textProp(child, 'label', 'title', 'text') || child.id) : textProp(node, 'items', 'options').split(/[|,]/).filter(Boolean).map((item) => item.trim());
         const active = activeTabs[completeKey] ?? 0;
-        return <div {...common}><div className="demo-tablist" role="tablist" aria-label={label || '分类'}>{labels.map((item, index) => <button key={`${item}-${index}`} type="button" role="tab" aria-selected={active === index} className={active === index ? 'active' : ''} onClick={(event) => { event.stopPropagation(); handleClick(event); if (!editing) setActiveTabs((current) => ({ ...current, [completeKey]: index })); }}>{item}</button>)}</div>{childNodes.length > 0 && <div className="demo-tab-panel">{renderNode(childNodes[active] || childNodes[0], `${path}/tab${active}`)}</div>}</div>;
+        return <div key={nodeKey} {...common}><div className="demo-tablist" role="tablist" aria-label={label || '分类'}>{labels.map((item, index) => <button key={`${item}-${index}`} type="button" role="tab" aria-selected={active === index} className={active === index ? 'active' : ''} onClick={(event) => { event.stopPropagation(); handleClick(event); if (!editing) setActiveTabs((current) => ({ ...current, [completeKey]: index })); }}>{item}</button>)}</div>{childNodes.length > 0 && <div className="demo-tab-panel">{renderNode(childNodes[active] || childNodes[0], `${path}/tab${active}`)}</div>}</div>;
       }
-      case 'empty': return <div {...common}><div className="demo-empty-icon">✦</div><strong>{label || '留一点空间给新的计划'}</strong><span>{textProp(node, 'description', 'subtitle') || '创建你的第一个目标，慢慢向前。'}</span>{kids()}</div>;
-      default: return <div {...common}><span className="demo-unknown-icon">◇</span><span>{label || '暂不支持此组件'}</span></div>;
+      case 'empty': return <div key={nodeKey} {...common}><div className="demo-empty-icon">✦</div><strong>{label || '留一点空间给新的计划'}</strong><span>{textProp(node, 'description', 'subtitle') || '创建你的第一个目标，慢慢向前。'}</span>{kids()}</div>;
+      default: return <ExtendedNode key={nodeKey} node={node} editing={editing} common={common} onAction={() => { if (!editing) runAction(node); }} />;
     }
   };
 
   if (!page) return <div className={`demo-root theme-${project.theme}`}><div className="demo-missing">此页面暂不可用。</div></div>;
-  return <div className={`demo-root theme-${project.theme}`} data-page-id={page.id}>
-    {page.nodes.map((node, index) => <React.Fragment key={`${page.id}/${index}/${node.id}`}>{renderNode(node, String(index))}</React.Fragment>)}
+  return <div ref={drag.rootRef} {...drag.handlers} className={`demo-root theme-${project.theme}${editing ? ' is-editing' : ''}${drag.draggingId ? ' is-dragging' : ''}`} data-page-id={page.id}>
+    {editing && !page.nodes.length && <div className="demo-editor-empty"><span>＋</span><strong>从一个组件开始</strong><p>在左侧组件库中选择内容，添加后拖动调整位置。</p></div>}
+    {page.nodes.map((node, index) => <React.Fragment key={`${page.id}/${node.id}`}>{renderNode(node, String(index))}</React.Fragment>)}
     {tasks.some((task) => task.pageId === pageId) && <section className="demo-created-tasks" aria-live="polite"><h3>新建任务</h3>{tasks.filter((task) => task.pageId === pageId).map((task, index) => <article key={`${task.title}-${index}`} className="demo-task"><button type="button" className={`demo-task-check${task.complete ? ' checked' : ''}`} onClick={() => setTasks((current) => current.map((item) => item === task ? { ...item, complete: !item.complete } : item))}>{task.complete ? '✓' : ''}</button><div className={`demo-task-copy${task.complete ? ' complete' : ''}`}><strong>{task.title}</strong><span>刚刚 · 个人</span></div></article>)}</section>}
     {toast && <div className="demo-toast" role="status">{toast}</div>}
     {dialog && <div className="demo-dialog-backdrop" role="presentation" onClick={() => setDialog('')}><section className="demo-dialog" role="dialog" aria-modal="true" aria-label={dialog} onClick={(event) => event.stopPropagation()}><button className="demo-dialog-close" type="button" aria-label="关闭" onClick={() => setDialog('')}>×</button><div className="demo-dialog-icon">✦</div><h2>{dialog}</h2><p>停下来想一想，安排好今天最重要的事。</p><button type="button" className="demo-dialog-ok" onClick={() => setDialog('')}>知道了</button></section></div>}

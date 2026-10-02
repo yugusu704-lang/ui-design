@@ -16,13 +16,22 @@ export function zipFiles(files:Record<string,string>):Uint8Array {
 export async function exportProject(project:Project):Promise<Uint8Array>{
   const p=validateProject(project);
   const read=(relative:string)=>readFile(new URL(relative,import.meta.url),'utf8');
-  const [renderer,css,types]=await Promise.all([read('../src/Renderer.tsx'),read('../src/runtime.css'),read('./types.ts')]);
+  const [renderer,css,types,extended,componentsCss,motion,motionCss,position,drag,credits]=await Promise.all([
+    read('../src/Renderer.tsx'),read('../src/runtime.css'),read('./types.ts'),
+    read('../src/ExtendedNode.tsx'),read('../src/components.css'),read('./motion.ts'),
+    read('../src/motion.css'),read('./position.ts'),read('../src/useCanvasDrag.ts'),read('../OPEN_SOURCE.md'),
+  ]);
   const files:Record<string,string>={
     'package.json':JSON.stringify({name:'atelier-demo',version:'1.0.0',private:true,type:'module',scripts:{dev:'vite --host 127.0.0.1',build:'tsc --noEmit && vite build',preview:'vite preview'},dependencies:{react:'^19.0.0','react-dom':'^19.0.0'},devDependencies:{vite:'^6.3.0',typescript:'^5.7.0','@types/react':'^19.0.0','@types/react-dom':'^19.0.0'}},null,2),
     'index.html':'<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Atelier Demo</title></head><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>',
-    'tsconfig.json':JSON.stringify({compilerOptions:{target:'ES2022',lib:['ES2022','DOM'],module:'ESNext',moduleResolution:'Bundler',jsx:'react-jsx',strict:true,skipLibCheck:true,esModuleInterop:true,resolveJsonModule:true,noEmit:true},include:['src','shared']},null,2),
+    'tsconfig.json':JSON.stringify({compilerOptions:{target:'ES2022',lib:['ES2022','DOM','DOM.Iterable'],module:'ESNext',moduleResolution:'Bundler',jsx:'react-jsx',strict:true,skipLibCheck:true,esModuleInterop:true,resolveJsonModule:true,allowImportingTsExtensions:true,noEmit:true},include:['src','shared']},null,2),
     'src/Renderer.tsx':renderer,
-    'src/runtime.css':css,
+    'src/runtime.css':[css,componentsCss,motionCss].join('\n'),
+    'src/ExtendedNode.tsx':extended,
+    'src/useCanvasDrag.ts':drag,
+    'shared/position.ts':position,
+    'shared/motion.ts':motion,
+    'OPEN_SOURCE.md':credits,
     'shared/types.ts':types.split('export interface ModelConfig')[0],
     'src/project.json':JSON.stringify(p,null,2),
     'src/main.tsx':`import React, {useState} from 'react';\nimport {createRoot} from 'react-dom/client';\nimport {Renderer} from './Renderer';\nimport type {Project} from '../shared/types';\nimport project from './project.json';\nimport './runtime.css';\nconst data=project as Project;\nfunction App(){const [page,setPage]=useState(data.pages[0].id);return <main style={{maxWidth:430,margin:'0 auto',minHeight:'100vh'}}><Renderer project={data} pageId={page} editing={false} onNavigate={setPage}/></main>;}\ncreateRoot(document.getElementById('root')!).render(<App/>);\n`,

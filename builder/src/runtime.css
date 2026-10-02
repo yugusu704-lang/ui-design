@@ -135,3 +135,14 @@
 .demo-root.theme-editorial .demo-text-heading { font-family: Georgia, "Songti SC", SimSun, serif; }
 .demo-root.theme-dark { --demo-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .demo-root *, .demo-root *::before, .demo-root *::after { animation: none !important; transition: none !important; } }
+
+.demo-root .demo-node.is-editing { cursor: grab; user-select: none; touch-action: pan-y; }
+.demo-root .demo-node.is-selected.is-editing { touch-action: none; z-index: 2; }
+.demo-root .demo-node.is-dragging { cursor: grabbing; outline-style: solid; z-index: 10; animation: none !important; }
+.demo-root.is-dragging, .demo-root.is-dragging * { cursor: grabbing !important; }
+.demo-root .demo-node.is-editing img { -webkit-user-drag: none; pointer-events: none; }
+.demo-root .demo-node.is-editing button { cursor: inherit; }
+.demo-editor-empty { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 10px; min-height: 320px; color: var(--demo-muted); }
+.demo-editor-empty > span { font-size: 28px; color: var(--demo-accent); }
+.demo-editor-empty strong { font-size: 16px; color: var(--demo-text); font-weight: 500; }
+.demo-editor-empty p { max-width: 230px; font-size: 13px; line-height: 1.8; margin: 0; }
