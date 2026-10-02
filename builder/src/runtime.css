@@ -146,3 +146,20 @@
 .demo-editor-empty > span { font-size: 28px; color: var(--demo-accent); }
 .demo-editor-empty strong { font-size: 16px; color: var(--demo-text); font-weight: 500; }
 .demo-editor-empty p { max-width: 230px; font-size: 13px; line-height: 1.8; margin: 0; }
+
+/* Keep authored canvas widths stable inside flex layouts, including exported projects. */
+.demo-root .demo-node[data-authored-width='true'] { flex-shrink: 0; flex-basis: auto; }
+.demo-root.is-dragging[data-snap-x='true']::before,
+.demo-root.is-dragging[data-snap-y='true']::after { content: ''; position: absolute; z-index: 24; pointer-events: none; border-color: var(--demo-accent); border-style: dashed; opacity: .75; }
+.demo-root.is-dragging[data-snap-x='true']::before { top: 0; bottom: 0; left: var(--canvas-guide-x); border-left-width: 1px; }
+.demo-root.is-dragging[data-snap-y='true']::after { right: 0; left: 0; top: var(--canvas-guide-y); border-top-width: 1px; }
+.demo-root .demo-node.is-selected[data-resize-axes='width']::after,
+.demo-root .demo-node.is-selected[data-resize-axes='both']::after,
+.demo-root .demo-node.is-selected[data-resize-axes='square']::after { content: ''; position: absolute; z-index: 4; width: 10px; height: 10px; border: 2px solid var(--demo-surface); border-radius: 3px; background: var(--demo-accent); box-shadow: 0 0 0 1px var(--demo-accent); pointer-events: auto; }
+.demo-root .demo-node.is-selected[data-resize-axes='width']::after { top: 50%; right: -5px; transform: translateY(-50%); cursor: ew-resize; }
+.demo-root .demo-node.is-selected[data-resize-axes='both']::after,
+.demo-root .demo-node.is-selected[data-resize-axes='square']::after { right: -5px; bottom: -5px; cursor: nwse-resize; }
+.demo-root .demo-node.is-resizing { cursor: nwse-resize; outline-color: var(--demo-accent); flex-shrink: 0; flex-basis: auto; }
+.demo-root .demo-node.is-resizing,
+.demo-root .demo-image.is-resizing,
+.demo-root .demo-node[data-authored-height='true'] { max-height: none; }
