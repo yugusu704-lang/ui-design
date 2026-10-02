@@ -47,6 +47,7 @@ type DraftRow = {
   base_version: number;
   edit_seq: number;
   document: string;
+  document_hash: string;
   updated_at: string;
   archived: number;
   saved_version: number | null;
@@ -293,8 +294,7 @@ export class SqliteStorage {
         if (existing.client_id !== input.clientId || existing.project_id !== input.project.id) throw new StorageConflictError('draftId 已属于其他客户端或项目。');
         if (input.editSeq < existing.edit_seq) throw new StorageConflictError('草稿序号已过期。');
         if (input.editSeq === existing.edit_seq) {
-          const currentHash = (this.database.prepare('SELECT document_hash FROM drafts WHERE draft_id = ?').get(input.draftId) as { document_hash: string }).document_hash;
-          if (hash !== currentHash || input.baseVersion !== existing.base_version) throw new StorageConflictError('相同草稿序号不能包含不同内容。');
+          if (hash !== existing.document_hash || input.baseVersion !== existing.base_version) throw new StorageConflictError('相同草稿序号不能包含不同内容。');
           const draft = this.draftRecord(existing);
           this.database.exec('COMMIT');
           return draft;
