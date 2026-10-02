@@ -1,3 +1,4 @@
 @echo off
 cd /d "%~dp0"
-call npm run dev
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\launcher.ps1" start
+exit /b %errorlevel%

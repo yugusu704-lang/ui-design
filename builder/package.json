@@ -8,7 +8,11 @@
     "dev": "concurrently -k \"tsx server/index.ts\" \"vite --host 127.0.0.1\"",
     "build": "tsc --noEmit && vite build",
     "test": "tsx --test tests/*.test.ts",
-    "start": "tsx server/index.ts"
+    "check:export": "tsx scripts/verify-export.ts",
+    "start": "tsx server/index.ts",
+    "launcher:start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/launcher.ps1 start",
+    "launcher:status": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/launcher.ps1 status",
+    "launcher:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/launcher.ps1 stop"
   },
   "dependencies": {
     "@fastify/static": "^10.1.5",
