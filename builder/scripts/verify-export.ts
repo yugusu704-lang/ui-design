@@ -16,9 +16,9 @@ async function main() {
   const zip = Buffer.from(await exportProject(project));
   assert.equal(zip.readUInt32LE(0), 0x04034b50, 'Invalid zip header');
 
-  // Create temporary directory inside builder so node_modules resolution works without network
-  const builderDir = path.resolve(import.meta.dirname, '..');
-  const tempDir = await mkdtemp(path.join(builderDir, '.export-verify-'));
+  // Use an isolated directory and only the exported dependency manifest.
+  const temporaryRoot = path.resolve(tmpdir());
+  const tempDir = await mkdtemp(path.join(temporaryRoot, 'atelier-export-'));
 
   try {
     let cursor = 0;
@@ -55,18 +55,25 @@ async function main() {
       assert.ok(names.includes(file), `Missing expected file in export: ${file}`);
     }
 
-    // Run TypeScript check
+    const npmCli = process.env.npm_execpath;
+    assert.ok(npmCli, 'Run this verification through npm run check:export');
+    console.log('Installing the exported project dependencies in isolation...');
+    execFileSync(process.execPath, [npmCli, 'install', '--no-audit', '--no-fund'], { cwd: tempDir, stdio: 'inherit' });
+
+    // Run TypeScript check using the freshly installed export dependencies.
     console.log('Running tsc --noEmit on exported project...');
-    const tscCli = path.join(builderDir, 'node_modules/typescript/bin/tsc');
+    const tscCli = path.join(tempDir, 'node_modules/typescript/bin/tsc');
     execFileSync(process.execPath, [tscCli, '--noEmit'], { cwd: tempDir, stdio: 'inherit' });
 
     // Run Vite build
     console.log('Running vite build on exported project...');
-    const viteCli = path.join(builderDir, 'node_modules/vite/bin/vite.js');
+    const viteCli = path.join(tempDir, 'node_modules/vite/bin/vite.js');
     execFileSync(process.execPath, [viteCli, 'build'], { cwd: tempDir, stdio: 'inherit' });
 
     console.log('Standalone export successfully passed typecheck and build!');
   } finally {
+    assert.equal(path.dirname(tempDir), temporaryRoot);
+    assert.ok(path.basename(tempDir).startsWith('atelier-export-'));
     await rm(tempDir, { recursive: true, force: true });
   }
 }

@@ -175,12 +175,16 @@ export function useCanvasDrag(options: Options) {
     const ids = mode === 'resize' ? [id] : normalizeSelection(latest.current.nodes, selectedIds).filter(selectedId => !isNodeLocked(latest.current.nodes, selectedId));
     const elements = ids.map(selectedId => Array.from(root.querySelectorAll<HTMLElement>('[data-node-id]')).find(element => element.dataset.nodeId === selectedId)).filter((element): element is HTMLElement => Boolean(element));
     if (!elements.length) return;
-    const entries = elements.map(element => ({ id: element.dataset.nodeId!, element, start: readPosition(element), current: readPosition(element), inline: inlineState(element), rect: rectInRoot(element, rootRect, root, scale) }));
+    const saved = elements.map(element => ({ element, inline: inlineState(element) }));
     for (const element of elements) {
       element.dataset.motionEnabled = 'false';
       element.style.animation = 'none';
-      element.getBoundingClientRect();
-      element.classList.add(mode === 'resize' ? 'is-resizing' : 'is-dragging');
+    }
+    const entries = saved.map(({ element, inline }) => ({ id: element.dataset.nodeId!, element, start: readPosition(element), current: readPosition(element), inline, rect: rectInRoot(element, rootRect, root, scale) }));
+    for (const entry of entries) {
+      // Removing the image cap must not change its size before pointer movement.
+      if (mode === 'resize' && entry.element.dataset.nodeType === 'image') entry.element.style.height = `${entry.rect.height}px`;
+      entry.element.classList.add(mode === 'resize' ? 'is-resizing' : 'is-dragging');
     }
     const union = {
       left: Math.min(...entries.map(entry => entry.rect.left)), top: Math.min(...entries.map(entry => entry.rect.top)),
@@ -192,11 +196,11 @@ export function useCanvasDrag(options: Options) {
     const type = (target.dataset.nodeType || 'text') as ComponentType;
     const axes = mode === 'resize' ? resizeAxes(type) : undefined;
     const parent = target.parentElement;
-    const proposedWidth = target.getBoundingClientRect().width / scale;
+    const startRect = entries[0]!.rect;
     gesture.current = {
       pointerId: event.pointerId, root, entries, pointer: { x: event.clientX, y: event.clientY }, scale, mode,
       scroll: { x: root.scrollLeft, y: root.scrollTop },
-      ...(mode === 'resize' ? { resizedId: id, axes, startSize: { width: proposedWidth, height: target.getBoundingClientRect().height / scale }, parentContentWidth: contentWidth(parent, canvasWidth) } : {}),
+      ...(mode === 'resize' ? { resizedId: id, axes, startSize: { width: startRect.width, height: startRect.height }, parentContentWidth: contentWidth(parent, canvasWidth) } : {}),
       bounds, union, currentDelta: { x: 0, y: 0 }, moved: false, bypassSnap: event.altKey,
     };
     event.preventDefault();

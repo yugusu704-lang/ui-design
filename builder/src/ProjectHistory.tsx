@@ -5,22 +5,32 @@ import type { DraftRecord, RevisionSummary } from '../shared/storage';
 
 function Overlay({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   const ref = useRef<HTMLElement>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const restoreFrame = useRef<number | undefined>(undefined);
   const closeRef = useRef(onClose); closeRef.current = onClose;
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
+    if (restoreFrame.current !== undefined) cancelAnimationFrame(restoreFrame.current);
+    returnFocus.current ??= document.activeElement as HTMLElement | null;
     const surface = ref.current; surface?.querySelector<HTMLElement>('button,input')?.focus();
     const handle = (event: KeyboardEvent) => {
       if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeRef.current(); }
       if (event.key !== 'Tab' || !surface) return;
       const controls = [...surface.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),[tabindex="0"]')].filter(node => node.getClientRects().length);
       const first = controls[0], last = controls.at(-1);
+      if (!first) { event.preventDefault(); surface.focus(); return; }
+      if (!surface.contains(document.activeElement)) { event.preventDefault(); (event.shiftKey ? last : first)?.focus(); return; }
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
       if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
     };
     document.addEventListener('keydown', handle, true);
-    return () => { document.removeEventListener('keydown', handle, true); requestAnimationFrame(() => previous?.focus()); };
+    return () => {
+      document.removeEventListener('keydown', handle, true);
+      restoreFrame.current = requestAnimationFrame(() => {
+        if (!surface?.isConnected && returnFocus.current?.isConnected) returnFocus.current.focus();
+      });
+    };
   }, []);
-  return <div className="history-backdrop"><section ref={ref} className="history-panel" role="dialog" aria-modal="true" aria-labelledby="history-title">
+  return <div className="history-backdrop"><section ref={ref} className="history-panel" role="dialog" aria-modal="true" aria-labelledby="history-title" tabIndex={-1}>
     <div className="history-heading"><div><span className="eyebrow">WORKSPACE</span><h2 id="history-title">{title}</h2></div><button className="icon-button" aria-label="关闭面板" onClick={onClose}><X size={18}/></button></div>{children}
   </section></div>;
 }
