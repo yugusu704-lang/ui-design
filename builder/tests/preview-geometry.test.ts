@@ -62,6 +62,15 @@ test('actual mode stays at 1:1 regardless of hidden or unavailable space', () =>
   });
 });
 
+test('fixed zoom modes expose exact 50, 75, 100, and 125 percent scales', () => {
+  for (const [mode, scale] of [['50', 0.5], ['75', 0.75], ['100', 1], ['125', 1.25]] as const) {
+    const result = fitPhonePreview(phoneDevices[1]!, { width: 100, height: 100 }, mode);
+    assert.equal(result.scale, scale);
+    assert.equal(result.displayWidth, result.width * scale);
+    assert.equal(result.displayHeight, result.height * scale);
+  }
+});
+
 test('each preset keeps the same outer-frame aspect ratio after fitting', () => {
   for (const device of phoneDevices) {
     const result = fitPhonePreview(device, { width: 250, height: 600 });

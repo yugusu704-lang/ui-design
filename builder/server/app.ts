@@ -1,14 +1,15 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import fastifyStatic from '@fastify/static';
-import { DatabaseSync } from 'node:sqlite';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import type { BuilderNode, DraftRequest, Project } from '../shared/types.ts';
+import type { SaveKind } from '../shared/storage.ts';
 import { COMPONENT_TYPES, STYLE_KEYS, validateProject } from '../shared/model.ts';
 import { exportProject } from '../shared/export.ts';
+import { SqliteStorage, StorageConflictError } from './storage.ts';
 
 const SERVER_DIR = path.dirname(fileURLToPath(import.meta.url));
 const BUILDER_DIR = path.resolve(SERVER_DIR, '..');
@@ -26,6 +27,7 @@ export interface BuildAppOptions {
   dataDir?: string;
   distDir?: string;
   fetch?: typeof globalThis.fetch;
+  processPending?: boolean;
 }
 
 function isLocalOrigin(origin: string | undefined): boolean {
@@ -41,6 +43,22 @@ function isLocalOrigin(origin: string | undefined): boolean {
 
 function assertProject(value: unknown): asserts value is Project {
   validateProject(value);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function hasOnlyKeys(value: Record<string, unknown>, allowed: string[]): boolean {
+  return Object.keys(value).every(key => allowed.includes(key));
+}
+
+function validId(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0 && value.length <= 200;
+}
+
+function validVersion(value: unknown): value is number {
+  return Number.isSafeInteger(value) && (value as number) >= 0;
 }
 
 function parseModelConfig(value: unknown): { baseUrl: string; model: string; apiKey?: string } {
@@ -152,14 +170,13 @@ function enforceDraftScope(original: Project, draft: Project, request: DraftRequ
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const dataDir = path.resolve(options.dataDir ?? DEFAULT_DATA_DIR);
-  await mkdir(dataDir, { recursive: true });
-  const database = new DatabaseSync(path.join(dataDir, 'projects.sqlite'));
-  database.exec(`
-    PRAGMA journal_mode = WAL;
-    CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, document TEXT NOT NULL, updated_at TEXT NOT NULL);
-    CREATE TABLE IF NOT EXISTS revisions (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT NOT NULL, document TEXT NOT NULL, created_at TEXT NOT NULL);
-    CREATE INDEX IF NOT EXISTS revisions_project_id ON revisions(project_id, id DESC);
-  `);
+  const storage = await SqliteStorage.open(dataDir, BUILDER_DIR);
+  try {
+    if (options.processPending !== false) await storage.recoverPending();
+  } catch (error) {
+    storage.close();
+    throw error;
+  }
   const configFile = path.join(dataDir, 'config.json');
   const app = Fastify({ logger: false, bodyLimit: BODY_LIMIT });
   const fetcher = options.fetch ?? globalThis.fetch;
@@ -175,38 +192,112 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       if (!isLocalOrigin(request.headers.origin)) return reply.code(403).send({ error: '仅允许来自本机页面的写入请求。' });
     }
   });
-  app.addHook('onClose', async () => { database.close(); });
+  app.addHook('onClose', async () => { storage.close(); });
+
+  app.get('/api/health', async () => ({ ready: true, service: 'atelier-builder', workspaceId: storage.workspaceId }));
 
   app.get('/api/projects', async () => {
-    const rows = database.prepare('SELECT document FROM projects ORDER BY updated_at DESC').all() as Array<{ document: string }>;
-    return rows.map(row => JSON.parse(row.document) as Project);
+    return storage.listProjects();
   });
 
-  app.post<{ Body: { project?: unknown } }>('/api/projects', async (request, reply) => {
+  app.post<{ Body: unknown }>('/api/projects', async (request, reply) => {
+    const body = request.body;
+    if (!isRecord(body) || !hasOnlyKeys(body, ['project', 'clientId', 'baseVersion', 'kind', 'label', 'requestId', 'draftId', 'editSeq'])) {
+      return reply.code(400).send({ error: '保存请求格式无效。' });
+    }
+    if (!Object.hasOwn(body, 'baseVersion')) return reply.code(428).send({ error: '保存请求缺少 baseVersion。' });
+    if (!validId(body.clientId) || !validId(body.requestId) || !validVersion(body.baseVersion)
+      || !['auto', 'manual', 'restore'].includes(String(body.kind))
+      || body.label !== undefined && (typeof body.label !== 'string' || body.label.length > 120)
+      || body.draftId !== undefined && !validId(body.draftId)
+      || body.editSeq !== undefined && (!Number.isSafeInteger(body.editSeq) || (body.editSeq as number) < 1)
+      || (body.draftId === undefined) !== (body.editSeq === undefined)) {
+      return reply.code(400).send({ error: '保存请求字段无效。' });
+    }
+    try { assertProject(body.project); }
+    catch (error) { return reply.code(400).send({ error: error instanceof Error ? error.message : '项目数据无效。' }); }
     try {
-      assertProject(request.body?.project);
-      const project = request.body.project;
-      const now = new Date().toISOString();
-      const document = JSON.stringify(project);
-      database.exec('BEGIN IMMEDIATE');
-      try {
-        database.prepare('INSERT INTO projects(id, document, updated_at) VALUES(?, ?, ?) ON CONFLICT(id) DO UPDATE SET document=excluded.document, updated_at=excluded.updated_at').run(project.id, document, now);
-        database.prepare('INSERT INTO revisions(project_id, document, created_at) VALUES(?, ?, ?)').run(project.id, document, now);
-        database.exec('COMMIT');
-      } catch (error) {
-        database.exec('ROLLBACK');
-        throw error;
-      }
-      return { project };
+      const receipt = await storage.save({
+        project: body.project, clientId: body.clientId, baseVersion: body.baseVersion,
+        kind: body.kind as SaveKind, ...(body.label === undefined ? {} : { label: body.label as string }),
+        requestId: body.requestId, ...(body.draftId === undefined ? {} : { draftId: body.draftId as string }),
+        ...(body.editSeq === undefined ? {} : { editSeq: body.editSeq as number }),
+      }, options.processPending !== false);
+      if (receipt.status === 'conflict') return reply.code(409).send({ error: receipt.error ?? '保存版本冲突。', receipt });
+      return reply.code(receipt.status === 'pending' ? 202 : 200).send(receipt);
     } catch (error) {
-      return reply.code(400).send({ error: error instanceof Error ? error.message : '项目数据无效。' });
+      if (error instanceof StorageConflictError) return reply.code(409).send({ error: error.message });
+      throw error;
     }
   });
 
   app.get<{ Params: { id: string } }>('/api/projects/:id', async (request, reply) => {
-    const row = database.prepare('SELECT document FROM projects WHERE id = ?').get(request.params.id) as { document: string } | undefined;
-    if (!row) return reply.code(404).send({ error: '未找到该项目。' });
-    return { project: JSON.parse(row.document) as Project };
+    const envelope = storage.getProject(request.params.id);
+    if (!envelope) return reply.code(404).send({ error: '未找到该项目。' });
+    return envelope;
+  });
+
+  app.put<{ Params: { draftId: string }; Body: unknown }>('/api/drafts/:draftId', async (request, reply) => {
+    const body = request.body;
+    if (!isRecord(body) || !hasOnlyKeys(body, ['project', 'clientId', 'baseVersion', 'editSeq'])) return reply.code(400).send({ error: '草稿请求格式无效。' });
+    if (!validId(body.clientId) || !validVersion(body.baseVersion) || !Number.isSafeInteger(body.editSeq) || (body.editSeq as number) < 1) {
+      return reply.code(400).send({ error: '草稿请求字段无效。' });
+    }
+    try { assertProject(body.project); }
+    catch (error) { return reply.code(400).send({ error: error instanceof Error ? error.message : '草稿数据无效。' }); }
+    try {
+      const draft = storage.upsertDraft({ draftId: request.params.draftId, project: body.project, clientId: body.clientId, baseVersion: body.baseVersion, editSeq: body.editSeq as number });
+      return { draft };
+    } catch (error) {
+      if (error instanceof StorageConflictError) return reply.code(409).send({ error: error.message });
+      throw error;
+    }
+  });
+
+  app.get<{ Querystring: { clientId?: string; projectId?: string } }>('/api/drafts', async (request, reply) => {
+    const { clientId, projectId } = request.query;
+    if (!validId(clientId) || projectId !== undefined && !validId(projectId)) return reply.code(400).send({ error: '草稿查询参数无效。' });
+    return { drafts: storage.listDrafts(clientId, projectId) };
+  });
+
+  app.post<{ Params: { draftId: string }; Body: unknown }>('/api/drafts/:draftId/archive', async (request, reply) => {
+    const body = request.body;
+    if (!isRecord(body) || !hasOnlyKeys(body, ['clientId']) || !validId(body.clientId)) return reply.code(400).send({ error: '归档请求格式无效。' });
+    try {
+      const draft = storage.archiveDraft(request.params.draftId, body.clientId);
+      if (!draft) return reply.code(404).send({ error: '未找到该草稿。' });
+      return { draft };
+    } catch (error) {
+      if (error instanceof StorageConflictError) return reply.code(409).send({ error: error.message });
+      throw error;
+    }
+  });
+
+  app.get<{ Querystring: { clientId?: string; pending?: string } }>('/api/save-requests', async (request, reply) => {
+    const { clientId, pending } = request.query;
+    if (!validId(clientId) || pending !== undefined && pending !== 'true' && pending !== 'false') return reply.code(400).send({ error: '保存请求查询参数无效。' });
+    return { requests: storage.listSaveRequests(clientId, pending === 'true') };
+  });
+
+  app.get<{ Params: { requestId: string }; Querystring: { clientId?: string } }>('/api/save-requests/:requestId', async (request, reply) => {
+    if (!validId(request.query.clientId)) return reply.code(400).send({ error: '保存请求缺少 clientId。' });
+    const receipt = storage.getSaveRequest(request.params.requestId, request.query.clientId);
+    if (!receipt) return reply.code(404).send({ error: '未找到该保存请求。' });
+    return receipt;
+  });
+
+  app.get<{ Params: { id: string }; Querystring: { before?: string } }>('/api/projects/:id/revisions', async (request, reply) => {
+    const before = request.query.before === undefined ? undefined : Number(request.query.before);
+    if (before !== undefined && (!Number.isSafeInteger(before) || before < 1)) return reply.code(400).send({ error: '历史记录游标无效。' });
+    return storage.listRevisions(request.params.id, before);
+  });
+
+  app.get<{ Params: { id: string; revisionId: string } }>('/api/projects/:id/revisions/:revisionId', async (request, reply) => {
+    const revisionId = Number(request.params.revisionId);
+    if (!Number.isSafeInteger(revisionId) || revisionId < 1) return reply.code(400).send({ error: '历史记录编号无效。' });
+    const revision = storage.getRevision(request.params.id, revisionId);
+    if (!revision) return reply.code(404).send({ error: '未找到该历史版本。' });
+    return { revision };
   });
 
   app.get('/api/config', async () => publicConfig(await readConfig(configFile)));

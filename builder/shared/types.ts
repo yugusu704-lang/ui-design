@@ -1,4 +1,4 @@
-export type ComponentType = 'stack'|'row'|'grid'|'card'|'divider'|'text'|'image'|'avatar'|'badge'|'button'|'input'|'textarea'|'checkbox'|'switch'|'select'|'progress'|'stat'|'task'|'habit'|'navbar'|'tabs'|'empty';
+export type ComponentType = 'stack'|'row'|'grid'|'card'|'divider'|'text'|'image'|'avatar'|'badge'|'button'|'input'|'textarea'|'checkbox'|'switch'|'select'|'progress'|'stat'|'task'|'habit'|'navbar'|'tabs'|'empty'|'alert'|'accordion'|'slider'|'radio'|'rating'|'skeleton'|'segmented'|'breadcrumb'|'list'|'timeline'|'pricing'|'testimonial'|'search'|'bottomnav';
 export interface Action { type: 'navigate'|'toast'|'toggle'|'submit'|'dialog'; target?: string; message?: string }
 export interface BuilderNode { id:string; type:ComponentType; props:Record<string,string|number|boolean>; style:Record<string,string|number>; children?:BuilderNode[]; action?:Action }
 export interface Page { id:string; name:string; nodes:BuilderNode[] }
