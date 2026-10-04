@@ -136,3 +136,62 @@ test('new edits replace an unsent automatic snapshot while a manual save is in f
     await new Promise(resolve => setTimeout(resolve, 20)); assert.deepEqual(names, ['manual']);
   } finally { release(); sync.dispose(); }
 });
+
+test('project switching refuses to replace memory when SQLite preservation fails', async () => {
+  let offline = false; const opened: string[] = [];
+  const fetcher = async (url: string, init?: RequestInit) => {
+    if (offline) throw new Error('offline');
+    if (url.startsWith('/api/save-requests')) return ok({ requests: [] });
+    if (url.startsWith('/api/drafts')) return ok(init ? {} : { drafts: [] });
+    if (url === '/api/projects') return ok([copy('saved')]);
+    if (url.startsWith('/api/projects/')) return ok({ project: copy('saved'), saveVersion: 1, updatedAt: 'now' });
+    return ok({ ready: true });
+  };
+  const sync = new ProjectSync(seedProject, { fetch: fetcher, clientId: 'switch-offline', auto: false, onProject: project => opened.push(project.id) });
+  try {
+    await sync.start(); sync.edit(copy('内存中的修改')); offline = true;
+    await assert.rejects(sync.openProject('other'), /offline/);
+    assert.deepEqual(opened, [seedProject.id]); assert.equal(sync.state.memoryOnly, true);
+  } finally { sync.dispose(); }
+});
+
+test('a newer edit during destination loading prevents project replacement', async () => {
+  const opened: string[] = []; let release: () => void = () => {};
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const fetcher = async (url: string, init?: RequestInit) => {
+    if (url.startsWith('/api/save-requests')) return ok({ requests: [] });
+    if (url.startsWith('/api/drafts')) return ok(init ? {} : { drafts: [] });
+    if (url === '/api/projects') return ok([copy('saved')]);
+    if (url === '/api/projects/other') { await gate; return ok({ project: { ...copy('other'), id: 'other' }, saveVersion: 3, updatedAt: 'now' }); }
+    if (url.startsWith('/api/projects/')) return ok({ project: copy('saved'), saveVersion: 1, updatedAt: 'now' });
+    return ok({ ready: true });
+  };
+  const sync = new ProjectSync(seedProject, { fetch: fetcher, clientId: 'switch-generation', auto: false, onProject: project => opened.push(project.id) });
+  try {
+    await sync.start(); const operation = sync.openProject('other');
+    await new Promise(resolve => setTimeout(resolve, 10));
+    assert.equal(sync.state.pendingCount, 1); sync.edit(copy('载入期间的新修改')); release();
+    await assert.rejects(operation, /新的修改/); assert.deepEqual(opened, [seedProject.id]);
+    assert.equal(sync.state.saveVersion, 1); assert.equal(sync.state.memoryOnly, true);
+  } finally { release(); sync.dispose(); }
+});
+
+test('draft recovery cannot replace a project while a project transition is active', async () => {
+  let release: () => void = () => {};
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const fetcher = async (url: string, init?: RequestInit) => {
+    if (url.startsWith('/api/save-requests')) return ok({ requests: [] });
+    if (url.startsWith('/api/drafts')) return ok(init ? {} : { drafts: [] });
+    if (url === '/api/projects') return ok([copy('saved')]);
+    if (url === '/api/projects/other') { await gate; return ok({ project: { ...copy('other'), id: 'other' }, saveVersion: 3, updatedAt: 'now' }); }
+    if (url.startsWith('/api/projects/')) return ok({ project: copy('saved'), saveVersion: 1, updatedAt: 'now' });
+    return ok({ ready: true });
+  };
+  const sync = new ProjectSync(seedProject, { fetch: fetcher, clientId: 'recovery-lock', auto: false });
+  try {
+    await sync.start(); const opening = sync.openProject('other');
+    await new Promise(resolve => setTimeout(resolve, 10));
+    await assert.rejects(sync.useSaved(), /切换项目/);
+    release(); await opening; assert.equal(sync.state.saveVersion, 3);
+  } finally { release(); sync.dispose(); }
+});

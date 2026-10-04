@@ -7,7 +7,8 @@ import {
   Undo2, X, Copy, Play, RotateCcw, Move, WandSparkles,
 } from 'lucide-react';
 import type { Action, BuilderNode, ComponentType, ModelConfig, Page, Project } from '../shared/types';
-import { createNode, findNode, insertNode, moveNode, removeNode, seedProject, updateNode, validateProject } from '../shared/model';
+import { createNode, findNode, insertNode, moveNode, removeNode, updateNode, validateProject } from '../shared/model';
+import { createProjectDocument } from '../shared/projects';
 import { Renderer } from './Renderer';
 import { DevicePreview } from './DevicePreview';
 import { componentGroups, typeLabels } from '../shared/catalog';
@@ -15,6 +16,7 @@ import { duplicateNode, insertAfter } from '../shared/editor';
 import { ProjectSync, type SyncState } from './project-sync';
 import type { DraftRecord } from '../shared/storage';
 import { ProjectHistory, RecoveryPanel } from './ProjectHistory';
+import { ProjectManager } from './ProjectManager';
 import { ComponentThumbnail } from './ComponentThumbnail';
 import { MotionPicker } from './MotionPicker';
 import { addTemplatePage, type TemplateId } from '../shared/templates';
@@ -25,6 +27,7 @@ import { SizeControls } from './SizeControls';
 import './workbench.css';
 import './library-tools.css';
 import './editor.css';
+import './project-manager.css';
 
 type Panel = 'components' | 'pages' | 'settings' | null;
 type Notice = { kind: 'success' | 'error' | 'info'; text: string };
@@ -43,6 +46,10 @@ const palettes: Record<Project['theme'], { label: string; description: string; s
 function clientIdentity(): string {
   try { const stored = localStorage.getItem('atelier-client-id'); if (stored) return stored; const id = crypto.randomUUID(); localStorage.setItem('atelier-client-id', id); return id; }
   catch { return crypto.randomUUID(); }
+}
+function selectedProjectPreference(): string | undefined {
+  try { return localStorage.getItem('atelier-selected-project-id') ?? undefined; }
+  catch { return undefined; }
 }
 
 function newId(prefix: string) {
@@ -80,7 +87,7 @@ function clearPageReferences(nodes: BuilderNode[], pageId: string): BuilderNode[
 }
 
 export default function App() {
-  const [project, setProject] = useState<Project>(() => structuredClone(seedProject));
+  const [project, setProject] = useState<Project>(() => createProjectDocument('未命名项目'));
   const [history, setHistory] = useState<Project[]>([]);
   const [future, setFuture] = useState<Project[]>([]);
   const [activePageId, setActivePageId] = useState(project.pages[0]?.id ?? '');
@@ -96,7 +103,8 @@ export default function App() {
   const [revealId, setRevealId] = useState<string>();
   const [motionReplay, setMotionReplay] = useState(0);
   const [notice, setNotice] = useState<Notice>();
-  const [busy, setBusy] = useState<'save' | 'export' | 'ai' | null>(null);
+  const [busy, setBusy] = useState<'save' | 'export' | 'ai' | 'project' | null>(null);
+  const [projectsOpen, setProjectsOpen] = useState(false);
   const [syncState, setSyncState] = useState<SyncState>({ online: false, initialized: false, phase: 'loading', saveVersion: 0, memoryOnly: false, pendingCount: 0 });
   const syncRef = useRef<ProjectSync | null>(null);
   const [clientId] = useState(clientIdentity);
@@ -146,15 +154,26 @@ export default function App() {
 
   useEffect(() => {
     let alive = true;
-    const sync = new ProjectSync(latestProject.current, { clientId,
+    const sync = new ProjectSync(latestProject.current, { clientId, initialProjectId: selectedProjectPreference(),
       onState: state => { if (alive) setSyncState(state); },
-      onProject: restored => { if (alive) { latestProject.current = restored; setProject(restored); setActivePageId(restored.pages[0]?.id ?? ''); setHistory([]); setFuture([]); setSelectedId(undefined); setSelectedIds([]); } },
+      onProject: restored => { if (alive) {
+        window.dispatchEvent(new Event('atelier-cancel-gesture'));
+        latestProject.current = restored; setProject(restored); setActivePageId(restored.pages[0]?.id ?? '');
+        setHistory([]); setFuture([]); lastHistoryGroup.current = undefined;
+        setSelectedId(undefined); setSelectedIds([]); setRenamingPageId(undefined); setExpanded({});
+        setDraft(undefined); setDraftPageId(undefined); setPrompt(''); setMode('edit'); setMobilePanel('canvas');
+        setRevealId(undefined); setMotionReplay(0);
+      } },
       onRecovery: drafts => { if (alive) setRecoveryDrafts(drafts); },
     });
     syncRef.current = sync; void sync.start();
     return () => { alive = false; sync.dispose(); if (syncRef.current === sync) syncRef.current = null; };
   }, [clientId]);
   useEffect(() => { syncRef.current?.edit(project); }, [project]);
+  useEffect(() => {
+    if (!syncState.initialized || !syncState.saveVersion) return;
+    try { localStorage.setItem('atelier-selected-project-id', project.id); } catch { /* Interface preference only. */ }
+  }, [project.id, syncState.initialized, syncState.saveVersion]);
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => { if (syncState.memoryOnly || syncState.pendingCount) { event.preventDefault(); event.returnValue = ''; } };
     window.addEventListener('beforeunload', warn); return () => window.removeEventListener('beforeunload', warn);
@@ -185,14 +204,14 @@ export default function App() {
   }, []);
 
   const commit = useCallback((next: Project, group?: string) => {
-    if (draft || busy === 'ai' || !syncState.initialized) return;
+    if (draft || busy === 'ai' || busy === 'project' || projectsOpen || !syncState.initialized) return;
     try { validateProject(next); }
     catch (error) { showNotice(error instanceof Error ? error.message : '修改无效', 'error'); return; }
     if (!group || lastHistoryGroup.current !== group) setHistory(items => [...items.slice(-39), project]);
     lastHistoryGroup.current = group;
     setFuture([]);
     setProject(next);
-  }, [project, draft, busy, showNotice, syncState.initialized]);
+  }, [project, draft, busy, projectsOpen, showNotice, syncState.initialized]);
 
   const patchPage = (patch: Partial<Page>, group?: string) => {
     if (!activePage || draft || busy === 'ai') return;
@@ -357,12 +376,23 @@ export default function App() {
     try { await syncRef.current?.manual(latestProject.current, label); showNotice('检查点已保存到 SQLite', 'info'); }
     catch (error) { showNotice(error instanceof Error ? error.message : '保存失败，请检查本地服务', 'error'); throw error; }
   };
+  const manageProject = async (operation: (sync: ProjectSync) => Promise<Project>) => {
+    const sync = syncRef.current;
+    if (!sync) throw new Error('本地工作区尚未连接');
+    sync.edit(latestProject.current);
+    setBusy('project');
+    try {
+      const opened = await operation(sync);
+      void sync.refreshRecovery().catch(() => {});
+      showNotice(`已打开「${opened.name}」`);
+    } finally { setBusy(null); }
+  };
 
   useEffect(() => {
     const shortcuts = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
       const typing = Boolean(target.closest('input,textarea,select,[contenteditable="true"]'));
-      if (configOpen || historyOpen || recoveryOpen || draft || busy === 'ai') return;
+      if (configOpen || historyOpen || recoveryOpen || projectsOpen || draft || busy === 'ai' || busy === 'project') return;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); if (!busy) void saveProject().catch(() => {}); return; }
       if (typing) return;
       if (event.ctrlKey || event.metaKey) {
@@ -493,7 +523,7 @@ export default function App() {
   return <main className="atelier-shell" onBlurCapture={() => { lastHistoryGroup.current = undefined; }}>
     <header className="topbar">
       <div className="brand-lockup"><span className="brand-mark">A</span><div><div className="brand-name">Atelier</div><div className="brand-caption">LOCAL BUILDER</div></div></div>
-      <div className="project-title-wrap"><span className="topbar-rule" /><input className="project-title" aria-label="项目名称" maxLength={100} value={project.name} readOnly={Boolean(draft) || busy === 'ai'} onChange={event => commit({ ...project, name: event.target.value }, 'project-name')} /><span className="local-chip"><span />本地项目</span></div>
+      <div className="project-title-wrap"><span className="topbar-rule" /><button className="project-manager-trigger" aria-label="管理项目" title="新建和切换项目" disabled={!syncState.initialized || busy !== null || Boolean(draft)} onClick={() => { window.dispatchEvent(new Event('atelier-cancel-gesture')); setProjectsOpen(true); }}><FolderOpen size={16}/><span>项目</span><ChevronDown size={13}/></button><input className="project-title" aria-label="项目名称" maxLength={100} value={project.name} readOnly={Boolean(draft) || busy !== null || projectsOpen} onChange={event => commit({ ...project, name: event.target.value }, 'project-name')} /><span className="local-chip"><span />本地项目</span></div>
       <div className="topbar-actions">
         <div className="history-actions">
           <button className="icon-button" title="撤销" aria-label="撤销" disabled={!history.length} onClick={undo}><Undo2 size={16} /></button>
@@ -648,6 +678,7 @@ export default function App() {
       <div className="modal-note"><span className={hasApiKey ? 'status-dot ready' : 'status-dot'} />{hasApiKey ? '模型连接信息已配置，可生成 AI 草稿。' : '配置完成后，AI 会先返回预览草稿供你检查。'}</div>
       <div className="modal-actions"><button className="button button-subtle" onClick={() => setConfigOpen(false)}>取消</button><button className="button button-primary" onClick={saveConfig} disabled={configBusy || !config.baseUrl.trim() || !config.model.trim()}>{configBusy ? <LoaderCircle className="spin" size={15} /> : <Check size={15} />}保存设置</button></div>
     </section></div>}
+    {projectsOpen && <ProjectManager current={project} disabled={busy !== null || !syncState.initialized || syncState.pendingCount > 0} onList={() => { const sync = syncRef.current; if (!sync) return Promise.reject(new Error('本地工作区尚未连接')); return sync.listProjects(); }} onCreate={(name, theme, source) => manageProject(sync => sync.createProject(name, theme, source))} onSwitch={id => manageProject(sync => sync.openProject(id))} onCopy={name => manageProject(sync => sync.duplicateProject(name))} onClose={() => setProjectsOpen(false)}/ >}
     {historyOpen && <ProjectHistory projectId={project.id} onClose={() => setHistoryOpen(false)} onSave={saveProject} onRestore={restoreRevision}/>}
     {recoveryOpen && <RecoveryPanel drafts={recoveryDrafts} onClose={() => setRecoveryOpen(false)} onSaved={async () => { await syncRef.current?.useSaved(); }} onRecover={async (draft, asNew) => { await syncRef.current?.recover(draft, asNew); }}/ >}
     {notice && <div className={`toast toast-${notice.kind}`} role="status"><span className="toast-mark">{notice.kind === 'error' ? '!' : notice.kind === 'info' ? 'i' : <Check size={13} />}</span>{notice.text}<button aria-label="关闭提示" onClick={() => setNotice(undefined)}><X size={14} /></button></div>}

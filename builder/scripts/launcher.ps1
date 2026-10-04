@@ -1,6 +1,6 @@
-param(
+﻿param(
   [Parameter(Mandatory = $true, Position = 0)]
-  [ValidateSet('start', 'status', 'stop')]
+  [ValidateSet('start', 'status', 'stop', 'session')]
   [string] $Action
 )
 
@@ -441,6 +441,44 @@ function Invoke-Stop {
   }
 }
 
+function Invoke-ConsoleSession {
+  $SessionLock = $null
+  try {
+    if (-not (Test-Path -LiteralPath $LauncherDir -PathType Container)) {
+      New-Item -ItemType Directory -Path $LauncherDir -Force | Out-Null
+    }
+
+    $SessionLockPath = Join-Path $LauncherDir 'console-session.lock'
+    try {
+      $SessionLock = [IO.File]::Open($SessionLockPath, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+    } catch {
+      throw "An Atelier console session is already open. Close its window to stop the services. ($($_.Exception.Message))"
+    }
+
+    if (-not ('Atelier.ConsoleSession' -as [type])) {
+      Add-Type -Path (Join-Path $PSScriptRoot 'console-session.cs')
+    }
+    $CloseSignal = New-Object Atelier.ConsoleSession
+    $Host.UI.RawUI.WindowTitle = 'Atelier · 本地页面工作室 · 关闭窗口以停止服务'
+
+    Invoke-Start
+    $Started = $true
+    Start-Process -FilePath 'http://127.0.0.1:5173/'
+    Write-Message ''
+    Write-Message 'Atelier 已在浏览器中打开。关闭此窗口（×）即可停止本工作区的 API 和网页服务。'
+    Write-Message '若只想隐藏窗口，请最小化；服务仍会继续运行。'
+    $CloseSignal.WaitForClose()
+  } finally {
+    if ($Started) {
+      Write-Message ''
+      Write-Message '正在停止 Atelier 本地服务…'
+      Invoke-Stop
+    }
+    if ($null -ne $CloseSignal) { $CloseSignal.Dispose() }
+    if ($null -ne $SessionLock) { $SessionLock.Dispose() }
+  }
+}
+
 try {
   if ($Action -eq 'start') {
     Invoke-Start
@@ -452,6 +490,10 @@ try {
   }
   if ($Action -eq 'stop') {
     exit (Invoke-Stop)
+  }
+  if ($Action -eq 'session') {
+    Invoke-ConsoleSession
+    exit 0
   }
 } catch {
   Write-Message "Builder launcher error: $($_.Exception.Message)"

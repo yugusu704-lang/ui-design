@@ -33,6 +33,71 @@ test('fresh unedited project saves and can be copied using the actual SQLite API
   });
 });
 
+test('creating a blank project stores a separate empty document in SQLite and opens it', async () => {
+  await fixture(async (app, fetcher) => {
+    let current = structuredClone(seedProject);
+    const sync = new ProjectSync(seedProject, { clientId: 'projects-client', fetch: fetcher, auto: false, onProject: project => { current = project; } });
+    try {
+      await sync.start(); await sync.manual();
+      await sync.createProject('我的产品', 'nordic', 'blank');
+      assert.notEqual(current.id, seedProject.id);
+      assert.equal(current.name, '我的产品'); assert.equal(current.theme, 'nordic');
+      assert.equal(current.pages.length, 1); assert.deepEqual(current.pages[0]!.nodes, []);
+      assert.equal(sync.state.phase, 'saved'); assert.equal(sync.state.saveVersion, 1);
+      assert.deepEqual((await app.inject(`/api/projects/${current.id}`)).json().project, current);
+      assert.deepEqual((await app.inject(`/api/projects/${seedProject.id}`)).json().project, seedProject);
+      assert.equal((await sync.listProjects()).length, 2);
+    } finally { sync.dispose(); }
+  });
+});
+
+test('switching projects preserves newer content as a SQLite draft and uses the destination version', async () => {
+  await fixture(async (app, fetcher) => {
+    let current = structuredClone(seedProject);
+    const sync = new ProjectSync(seedProject, { clientId: 'switch-client', fetch: fetcher, auto: false, onProject: project => { current = project; } });
+    try {
+      await sync.start(); await sync.manual();
+      const blank = await sync.createProject('独立项目', 'editorial');
+      sync.edit({ ...blank, name: '尚未正式保存的编辑' });
+      await sync.openProject(seedProject.id);
+      assert.equal(current.id, seedProject.id); assert.equal(sync.state.saveVersion, 1);
+      const drafts = (await app.inject('/api/drafts?clientId=switch-client')).json().drafts as DraftRecord[];
+      assert.ok(drafts.some(draft => draft.projectId === blank.id && draft.project.name === '尚未正式保存的编辑' && !draft.archived));
+      await sync.manual({ ...current, name: '示例更新' });
+      assert.equal((await app.inject(`/api/projects/${blank.id}`)).json().project.name, '独立项目');
+      assert.equal((await app.inject(`/api/projects/${seedProject.id}`)).json().saveVersion, 2);
+    } finally { sync.dispose(); }
+  });
+});
+
+test('duplicating a project keeps its contents and saves an independent copy', async () => {
+  await fixture(async (app, fetcher) => {
+    const sync = new ProjectSync(seedProject, { clientId: 'duplicate-client', fetch: fetcher, auto: false });
+    try {
+      await sync.start(); await sync.manual();
+      const duplicate = await sync.duplicateProject('自己的设计');
+      assert.notEqual(duplicate.id, seedProject.id); assert.equal(duplicate.name, '自己的设计');
+      assert.deepEqual(duplicate.pages, seedProject.pages); assert.equal(sync.state.phase, 'saved');
+      duplicate.pages[0]!.nodes.length = 0;
+      assert.deepEqual((await app.inject(`/api/projects/${seedProject.id}`)).json().project, seedProject);
+      assert.deepEqual((await app.inject(`/api/projects/${duplicate.id}`)).json().project.pages, seedProject.pages);
+    } finally { sync.dispose(); }
+  });
+});
+
+test('startup reopens the selected project even if another project was saved more recently', async () => {
+  await fixture(async (_app, fetcher) => {
+    const first = new ProjectSync(seedProject, { clientId: 'startup-client', fetch: fetcher, auto: false });
+    let current = structuredClone(seedProject);
+    try {
+      await first.start(); await first.manual(); await first.createProject('最新保存的项目', 'dark');
+      const next = new ProjectSync(seedProject, { clientId: 'startup-client', fetch: fetcher, auto: false, initialProjectId: seedProject.id, onProject: project => { current = project; } });
+      try { await next.start(); assert.equal(current.id, seedProject.id); }
+      finally { next.dispose(); }
+    } finally { first.dispose(); }
+  });
+});
+
 test('lost completed-save response retries the identical request without a duplicate revision', async () => {
   await fixture(async (app, fetcher) => {
     const bodies: string[] = []; let dropped = false;

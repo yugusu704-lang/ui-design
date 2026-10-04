@@ -1,5 +1,6 @@
 import type { Project } from '../shared/types';
 import { validateProject } from '../shared/model';
+import { createProjectDocument } from '../shared/projects';
 import type { DraftRecord, ProjectEnvelope, SaveKind, SaveReceipt } from '../shared/storage';
 
 export interface SyncState {
@@ -8,6 +9,7 @@ export interface SyncState {
 }
 interface Options {
   fetch?: (url: string, init?: RequestInit) => Promise<Response>; clientId: string; auto?: boolean;
+  initialProjectId?: string;
   onProject?: (project: Project) => void; onState?: (state: SyncState) => void; onRecovery?: (drafts: DraftRecord[]) => void;
 }
 interface Intent { project: Project; editSeq: number; kind: SaveKind; label?: string; synced: Promise<void>; resolve: () => void; reject: (reason: Error) => void; }
@@ -38,6 +40,7 @@ export class ProjectSync {
   private autoIntent?: Intent;
   private active?: { intent: Intent; body: Record<string, unknown> };
   private running = false;
+  private transitioning = false;
   private draftChain = Promise.resolve();
   private draftTimer?: ReturnType<typeof setTimeout>;
   private autoTimer?: ReturnType<typeof setTimeout>;
@@ -48,7 +51,7 @@ export class ProjectSync {
   private fetcher: NonNullable<Options['fetch']>;
   constructor(project: Project, private options: Options) { this.current = validateProject(project); this.fetcher = options.fetch ?? ((url, init) => fetch(url, init)); }
   get state(): SyncState {
-    const pendingCount = this.queue.length + Number(Boolean(this.active)) + Number(Boolean(this.autoIntent));
+    const pendingCount = this.queue.length + Number(Boolean(this.active)) + Number(Boolean(this.autoIntent)) + Number(this.transitioning);
     const phase = !this.initialized ? 'loading' : !this.online ? 'offline' : this.conflicted ? 'conflict' : pendingCount ? 'saving' : snapshot(this.current) === this.published ? 'saved' : this.seq <= this.durableSeq ? 'draft' : 'memory';
     return { online: this.online, initialized: this.initialized, phase, saveVersion: this.version, memoryOnly: this.seq > this.durableSeq, pendingCount, error: this.error, savedAt: this.savedAt };
   }
@@ -72,7 +75,8 @@ export class ProjectSync {
       }
       const projects = await this.api<Project[]>('/api/projects');
       if (!this.seq && projects.length) {
-        const envelope = await this.api<ProjectEnvelope>(`/api/projects/${encodeURIComponent(projects[0]!.id)}`);
+        const selected = projects.find(project => project.id === this.options.initialProjectId) ?? projects[0]!;
+        const envelope = await this.api<ProjectEnvelope>(`/api/projects/${encodeURIComponent(selected.id)}`);
         this.current = validateProject(envelope.project); this.version = envelope.saveVersion; this.published = snapshot(this.current); this.savedAt = envelope.updatedAt; this.durableSeq = 0;
         this.draftBases.set(0, this.version); if (!this.disposed) this.options.onProject?.(structuredClone(this.current));
       }
@@ -106,7 +110,7 @@ export class ProjectSync {
   }
   private schedule() {
     clearTimeout(this.draftTimer); clearTimeout(this.autoTimer);
-    if (!this.initialized || this.disposed) return;
+    if (!this.initialized || this.disposed || this.transitioning) return;
     this.draftTimer = setTimeout(() => { void this.flush().catch(() => {}); }, Math.max(500, 1000 - (Date.now() - this.lastDraft)));
     if (this.options.auto !== false && !this.conflicted) this.autoTimer = setTimeout(() => {
       if (snapshot(this.current) === this.published) return;
@@ -133,6 +137,7 @@ export class ProjectSync {
     this.draftChain = operation; return operation;
   }
   async manual(project = this.current, label?: string, kind: SaveKind = 'manual'): Promise<void> {
+    if (this.transitioning) throw new Error('正在切换项目，请稍后保存');
     this.edit(project);
     if (!this.initialized) throw new Error('正在连接本地工作区，请稍后保存');
     if (this.conflicted) throw new Error('版本冲突：请先恢复或另存项目');
@@ -202,14 +207,54 @@ export class ProjectSync {
   async copyCurrent(): Promise<Project> {
     await this.preserve(); this.replace({ ...this.current, id: crypto.randomUUID(), name: `${this.current.name.slice(0, 90)} · 副本` }, 0); await this.flush(); this.schedule(); return this.current;
   }
-  private async preserve() { const generation = { seq: this.seq, draftId: this.draftId }; await this.flush(); this.assertIdle(); this.assertGeneration(generation); return generation; }
+  async listProjects(): Promise<Project[]> {
+    return (await this.api<Project[]>('/api/projects')).map(validateProject);
+  }
+  async openProject(id: string): Promise<Project> {
+    if (id === this.current.id) return structuredClone(this.current);
+    return this.transition(async generation => {
+      const envelope = await this.api<ProjectEnvelope>(`/api/projects/${encodeURIComponent(id)}`);
+      this.assertGeneration(generation);
+      this.replace(envelope.project, envelope.saveVersion, envelope.updatedAt);
+      return structuredClone(this.current);
+    });
+  }
+  async createProject(name: string, theme: Project['theme'], source: 'blank' | 'example' = 'blank'): Promise<Project> {
+    return this.storeNewProject(createProjectDocument(name, theme, source));
+  }
+  async duplicateProject(name: string): Promise<Project> {
+    const next = structuredClone(this.current);
+    next.id = crypto.randomUUID(); next.name = name.trim(); validateProject(next);
+    if (!next.name) throw new Error('请输入项目名称');
+    return this.storeNewProject(next);
+  }
+  private async storeNewProject(project: Project): Promise<Project> {
+    return this.transition(async generation => {
+      const draftId = crypto.randomUUID();
+      await this.api(`/api/drafts/${draftId}`, this.write('PUT', { project, clientId: this.options.clientId, baseVersion: 0, editSeq: 1 }));
+      const receipt = await this.send({ project, clientId: this.options.clientId, baseVersion: 0, kind: 'manual', requestId: crypto.randomUUID(), draftId, editSeq: 1 });
+      if (receipt.status !== 'completed' || receipt.saveVersion === undefined) throw new Error('新项目保存尚未完成');
+      this.assertGeneration(generation);
+      this.replace(project, receipt.saveVersion, receipt.updatedAt);
+      return structuredClone(this.current);
+    });
+  }
+  private async transition(operation: (generation: { seq: number; draftId: string }) => Promise<Project>): Promise<Project> {
+    if (!this.initialized || this.disposed) throw new Error('请等待本地工作区就绪');
+    if (this.transitioning) throw new Error('正在切换项目，请稍后重试');
+    this.assertIdle(); this.transitioning = true;
+    clearTimeout(this.draftTimer); clearTimeout(this.autoTimer); this.emit();
+    try { return await operation(await this.preserve(true)); }
+    finally { this.transitioning = false; this.schedule(); this.emit(); }
+  }
+  private async preserve(allowTransition = false) { this.assertIdle(allowTransition); const generation = { seq: this.seq, draftId: this.draftId }; await this.flush(); this.assertIdle(allowTransition); this.assertGeneration(generation); return generation; }
   private assertGeneration(generation: { seq: number; draftId: string }) { if (generation.seq !== this.seq || generation.draftId !== this.draftId) throw new Error('载入期间有新的修改，请等待草稿同步后重试'); }
   private replace(project: Project, version: number, updatedAt?: string) {
     clearTimeout(this.draftTimer); clearTimeout(this.autoTimer); this.autoIntent?.resolve(); this.autoIntent = undefined;
     this.current = validateProject(project); this.version = version; this.published = updatedAt ? snapshot(project) : ''; this.savedAt = updatedAt;
     this.seq = 0; this.durableSeq = updatedAt ? 0 : -1; this.draftId = crypto.randomUUID(); this.draftBases = new Map([[0, version]]); this.conflicted = false; this.error = undefined; this.options.onProject?.(structuredClone(this.current)); this.emit();
   }
-  private assertIdle() { if (this.active || this.queue.length || this.autoIntent) throw new Error('请等待当前保存请求完成后再载入版本'); }
+  private assertIdle(allowTransition = false) { if (this.transitioning && !allowTransition) throw new Error('正在切换项目，请稍后再载入版本'); if (this.active || this.queue.length || this.autoIntent) throw new Error('请等待当前保存请求完成后再载入版本'); }
   dispose(): void {
     this.disposed = true; clearTimeout(this.draftTimer); clearTimeout(this.autoTimer); clearInterval(this.reconnectTimer);
     for (const [timer, resolve] of this.waiters) { clearTimeout(timer); resolve(); } this.waiters.clear(); for (const intent of this.queue.splice(0)) intent.reject(new Error('编辑器已关闭'));
